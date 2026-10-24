@@ -63,6 +63,12 @@ def _non_negative(value: float, name: str) -> float:
     return float(value)
 
 
+def _positive(value: float, name: str) -> float:
+    if not np.isfinite(value) or value <= 0.0:
+        raise ValueError(f"{name} must be finite and positive")
+    return float(value)
+
+
 @dataclass(frozen=True)
 class VehicleSpec:
     name: str
@@ -126,24 +132,30 @@ class State:
 
 @dataclass(frozen=True)
 class Obstacle:
+    """Analytic obstacle; cylinders are axis-aligned and vertical in NED z."""
+
     obstacle_id: str
     kind: str
     center_ned_m: FloatArray
     radius_m: float | None = None
     half_extents_m: FloatArray | None = None
+    height_m: float | None = None
 
     def __post_init__(self) -> None:
         if not self.obstacle_id:
             raise ValueError("obstacle_id must not be empty")
-        if self.kind not in {"sphere", "box"}:
-            raise ValueError("kind must be 'sphere' or 'box'")
+        if self.kind not in {"sphere", "box", "cylinder"}:
+            raise ValueError("kind must be 'sphere', 'box', or 'cylinder'")
         object.__setattr__(self, "center_ned_m", _vector(self.center_ned_m, 3, "center_ned_m"))
         if self.kind == "sphere":
-            if self.radius_m is None or self.radius_m <= 0.0:
+            if self.radius_m is None:
                 raise ValueError("sphere obstacles require a positive radius_m")
+            object.__setattr__(self, "radius_m", _positive(self.radius_m, "radius_m"))
             if self.half_extents_m is not None:
                 raise ValueError("sphere obstacles must not define half_extents_m")
-        else:
+            if self.height_m is not None:
+                raise ValueError("sphere obstacles must not define height_m")
+        elif self.kind == "box":
             if self.half_extents_m is None:
                 raise ValueError("box obstacles require half_extents_m")
             object.__setattr__(
@@ -155,6 +167,17 @@ class Obstacle:
                 raise ValueError("half_extents_m must be positive")
             if self.radius_m is not None:
                 raise ValueError("box obstacles must not define radius_m")
+            if self.height_m is not None:
+                raise ValueError("box obstacles must not define height_m")
+        else:
+            if self.radius_m is None:
+                raise ValueError("cylinder obstacles require a positive radius_m")
+            object.__setattr__(self, "radius_m", _positive(self.radius_m, "radius_m"))
+            if self.height_m is None:
+                raise ValueError("cylinder obstacles require a positive height_m")
+            object.__setattr__(self, "height_m", _positive(self.height_m, "height_m"))
+            if self.half_extents_m is not None:
+                raise ValueError("cylinder obstacles must not define half_extents_m")
 
 
 @dataclass(frozen=True)
@@ -508,7 +531,9 @@ class EvalResult:
     metrics: Mapping[str, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        for name in ("min_clearance_m", "path_length_m", "duration_s", "energy_j", "tracking_rmse"):
+        if not np.isfinite(self.min_clearance_m):
+            raise ValueError("min_clearance_m must be finite")
+        for name in ("path_length_m", "duration_s", "energy_j", "tracking_rmse"):
             value = getattr(self, name)
             if not np.isfinite(value) or value < 0.0:
                 raise ValueError(f"{name} must be finite and non-negative")

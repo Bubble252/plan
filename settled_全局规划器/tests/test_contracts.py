@@ -5,6 +5,8 @@ import pytest
 
 from auv_planner.contracts import (
     CapabilitySet,
+    EvalResult,
+    Obstacle,
     ObstacleMap,
     PlanRequest,
     PlanResult,
@@ -105,3 +107,47 @@ def test_ok_plan_requires_trajectory() -> None:
 def test_noop_adapters_satisfy_protocols() -> None:
     assert isinstance(NoLocalPlanner(), LocalPlanner)
     assert isinstance(NoSafetyFilter(), SafetyFilter)
+
+
+def test_cylinder_obstacle_requires_finite_positive_dimensions() -> None:
+    cylinder = Obstacle(
+        "pillar",
+        "cylinder",
+        np.zeros(3),
+        radius_m=0.5,
+        height_m=2.0,
+    )
+
+    assert cylinder.radius_m == 0.5
+    assert cylinder.height_m == 2.0
+    with pytest.raises(ValueError, match="height_m must be finite and positive"):
+        Obstacle("bad", "cylinder", np.zeros(3), radius_m=0.5, height_m=float("nan"))
+    with pytest.raises(ValueError, match="radius_m must be finite and positive"):
+        Obstacle("bad", "cylinder", np.zeros(3), radius_m=-1.0, height_m=1.0)
+
+
+def test_eval_result_allows_negative_clearance_but_requires_failure_reason() -> None:
+    result = EvalResult(
+        success=False,
+        collision=True,
+        min_clearance_m=-0.1,
+        path_length_m=1.0,
+        duration_s=1.0,
+        energy_j=0.0,
+        tracking_rmse=0.0,
+        constraint_violations=0,
+        failure_reason="collision",
+    )
+
+    assert result.min_clearance_m == -0.1
+    with pytest.raises(ValueError, match="failure_reason"):
+        EvalResult(
+            success=False,
+            collision=True,
+            min_clearance_m=-0.1,
+            path_length_m=1.0,
+            duration_s=1.0,
+            energy_j=0.0,
+            tracking_rmse=0.0,
+            constraint_violations=0,
+        )

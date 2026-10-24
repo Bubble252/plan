@@ -26,7 +26,23 @@ from .contracts import (
     VehicleSpec,
     WorldSnapshot,
 )
+from .current import DepthShearCurrent
+from .geometry import (
+    ClearanceDetails,
+    HullSpec,
+    OccupancyGrid,
+    SweepResult,
+    hull_clearance,
+    hull_clearance_details,
+    hull_from_vehicle,
+    hull_sphere_centers,
+    obstacle_signed_distance,
+    point_clearance,
+    point_clearance_details,
+    trajectory_sweep,
+)
 from .interfaces import GlobalPlanner, Guidance, LocalPlanner, SafetyFilter, SimulatorBackend
+from .metrics import PathMetrics, compute_path_metrics
 
 __all__ = [
     "BODY_FRAME",
@@ -34,13 +50,18 @@ __all__ = [
     "CapabilitySet",
     "ControlProposal",
     "CurrentField",
+    "ClearanceDetails",
+    "DepthShearCurrent",
     "EvalResult",
     "GlobalPlanner",
     "Guidance",
+    "HullSpec",
     "LocalObservation",
     "LocalPlanner",
     "Obstacle",
     "ObstacleMap",
+    "OccupancyGrid",
+    "PathMetrics",
     "PlanReason",
     "PlanRequest",
     "PlanResult",
@@ -53,9 +74,19 @@ __all__ = [
     "ScenarioConfig",
     "SimulatorBackend",
     "State",
+    "SweepResult",
     "TaskSpec",
     "Trajectory",
     "UniformCurrent",
     "VehicleSpec",
     "WorldSnapshot",
+    "compute_path_metrics",
+    "hull_clearance",
+    "hull_clearance_details",
+    "hull_from_vehicle",
+    "hull_sphere_centers",
+    "obstacle_signed_distance",
+    "point_clearance",
+    "point_clearance_details",
+    "trajectory_sweep",
 ]
