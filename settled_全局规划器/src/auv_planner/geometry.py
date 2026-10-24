@@ -18,6 +18,15 @@ def _point(value: object, name: str) -> FloatArray:
     return array
 
 
+def _points(value: object, name: str) -> FloatArray:
+    array = np.asarray(value, dtype=np.float64)
+    if array.ndim != 2 or array.shape[1] != 3 or array.shape[0] < 1:
+        raise ValueError(f"{name} must have shape (N, 3) with N >= 1")
+    if not np.all(np.isfinite(array)):
+        raise ValueError(f"{name} must contain only finite values")
+    return array
+
+
 def _quaternion(value: object) -> FloatArray:
     quat = np.asarray(value, dtype=np.float64)
     if quat.shape != (4,):
@@ -28,14 +37,6 @@ def _quaternion(value: object) -> FloatArray:
     if norm <= 0.0:
         raise ValueError("quaternion must have non-zero norm")
     return quat / norm
-
-
-def _quat_rotate(quat_xyzw: FloatArray, vector: FloatArray) -> FloatArray:
-    quat = _quaternion(quat_xyzw)
-    imaginary = quat[:3]
-    real = quat[3]
-    cross = 2.0 * np.cross(imaginary, vector)
-    return vector + real * cross + np.cross(imaginary, cross)
 
 
 def _slerp(quat_a: FloatArray, quat_b: FloatArray, fraction: float) -> FloatArray:
@@ -99,39 +100,75 @@ def hull_sphere_centers(state: State, hull: HullSpec) -> FloatArray:
         raise TypeError("state must be a State")
     if not isinstance(hull, HullSpec):
         raise TypeError("hull must be a HullSpec")
-    rotated = np.vstack([_quat_rotate(state.quat_xyzw, offset) for offset in hull.offsets_body_m])
-    return rotated + state.position_ned_m.reshape(1, 3)
+    return hull_sphere_centers_from_pose(state.position_ned_m, state.quat_xyzw, hull)
+
+
+def rotated_hull_offsets(hull: HullSpec, quat_xyzw: FloatArray) -> FloatArray:
+    if not isinstance(hull, HullSpec):
+        raise TypeError("hull must be a HullSpec")
+    x, y, z, w = _quaternion(quat_xyzw)
+    rotation = np.array(
+        [
+            [1.0 - 2.0 * (y * y + z * z), 2.0 * (x * y - z * w), 2.0 * (x * z + y * w)],
+            [2.0 * (x * y + z * w), 1.0 - 2.0 * (x * x + z * z), 2.0 * (y * z - x * w)],
+            [2.0 * (x * z - y * w), 2.0 * (y * z + x * w), 1.0 - 2.0 * (x * x + y * y)],
+        ],
+        dtype=np.float64,
+    )
+    return hull.offsets_body_m @ rotation.T
+
+
+def hull_sphere_centers_from_pose(
+    position_ned_m: FloatArray,
+    quat_xyzw: FloatArray,
+    hull: HullSpec,
+) -> FloatArray:
+    position = _point(position_ned_m, "position_ned_m")
+    return rotated_hull_offsets(hull, quat_xyzw) + position.reshape(1, 3)
+
+
+def obstacle_signed_distance_array(points_ned_m: FloatArray, obstacle: Obstacle) -> FloatArray:
+    if not isinstance(obstacle, Obstacle):
+        raise TypeError("obstacle must be an Obstacle")
+    points = _points(points_ned_m, "points_ned_m")
+    local = points - obstacle.center_ned_m.reshape(1, 3)
+    if obstacle.kind == "sphere":
+        assert obstacle.radius_m is not None
+        return np.linalg.norm(local, axis=1) - obstacle.radius_m
+    if obstacle.kind == "box":
+        assert obstacle.half_extents_m is not None
+        delta = np.abs(local) - obstacle.half_extents_m
+        outside = np.linalg.norm(np.maximum(delta, 0.0), axis=1)
+        inside = np.minimum(np.max(delta, axis=1), 0.0)
+        return outside + inside
+    assert obstacle.kind == "cylinder"
+    assert obstacle.radius_m is not None and obstacle.height_m is not None
+    radial = np.hypot(local[:, 0], local[:, 1]) - obstacle.radius_m
+    axial = np.abs(local[:, 2]) - obstacle.height_m / 2.0
+    outside = np.hypot(np.maximum(radial, 0.0), np.maximum(axial, 0.0))
+    inside = np.minimum(np.maximum(radial, axial), 0.0)
+    return outside + inside
 
 
 def obstacle_signed_distance(point_ned_m: FloatArray, obstacle: Obstacle) -> float:
     point = _point(point_ned_m, "point_ned_m")
-    local = point - obstacle.center_ned_m
-    if obstacle.kind == "sphere":
-        assert obstacle.radius_m is not None
-        return float(np.linalg.norm(local) - obstacle.radius_m)
-    if obstacle.kind == "box":
-        assert obstacle.half_extents_m is not None
-        delta = np.abs(local) - obstacle.half_extents_m
-        outside = float(np.linalg.norm(np.maximum(delta, 0.0)))
-        inside = float(min(np.max(delta), 0.0))
-        return outside + inside
-    assert obstacle.kind == "cylinder"
-    assert obstacle.radius_m is not None and obstacle.height_m is not None
-    radial = float(np.hypot(local[0], local[1]) - obstacle.radius_m)
-    axial = float(abs(local[2]) - obstacle.height_m / 2.0)
-    outside = float(np.hypot(max(radial, 0.0), max(axial, 0.0)))
-    inside = float(min(max(radial, axial), 0.0))
-    return outside + inside
+    return float(obstacle_signed_distance_array(point.reshape(1, 3), obstacle)[0])
+
+
+def _bounds_signed_distance_array(points_ned_m: FloatArray, bounds_ned_m: FloatArray) -> FloatArray:
+    points = _points(points_ned_m, "points_ned_m")
+    lower = bounds_ned_m[:, 0]
+    upper = bounds_ned_m[:, 1]
+    inside_distance = np.minimum(points - lower, upper - points)
+    all_inside = np.all(inside_distance >= 0.0, axis=1)
+    outside_offset = np.maximum(lower - points, 0.0) + np.maximum(points - upper, 0.0)
+    outside_distance = -np.linalg.norm(outside_offset, axis=1)
+    return np.where(all_inside, np.min(inside_distance, axis=1), outside_distance)
 
 
 def _bounds_signed_distance(point_ned_m: FloatArray, bounds_ned_m: FloatArray) -> float:
-    lower = bounds_ned_m[:, 0]
-    upper = bounds_ned_m[:, 1]
-    inside_distance = np.minimum(point_ned_m - lower, upper - point_ned_m)
-    if np.all(inside_distance >= 0.0):
-        return float(np.min(inside_distance))
-    outside_offset = np.maximum(lower - point_ned_m, 0.0) + np.maximum(point_ned_m - upper, 0.0)
-    return -float(np.linalg.norm(outside_offset))
+    point = _point(point_ned_m, "point_ned_m")
+    return float(_bounds_signed_distance_array(point.reshape(1, 3), bounds_ned_m)[0])
 
 
 @dataclass(frozen=True)
@@ -154,11 +191,13 @@ def _clearance_from_centers(
 ) -> ClearanceDetails:
     obstacle_clearance = float("inf")
     for obstacle in obstacle_map.obstacles:
-        for center in centers_ned_m:
-            obstacle_clearance = min(obstacle_clearance, obstacle_signed_distance(center, obstacle))
+        obstacle_clearance = min(
+            obstacle_clearance,
+            float(np.min(obstacle_signed_distance_array(centers_ned_m, obstacle))),
+        )
     obstacle_clearance -= radius_m
-    boundary_clearance = min(
-        _bounds_signed_distance(center, obstacle_map.bounds_ned_m) for center in centers_ned_m
+    boundary_clearance = float(
+        np.min(_bounds_signed_distance_array(centers_ned_m, obstacle_map.bounds_ned_m))
     ) - radius_m
     clearance = min(obstacle_clearance, boundary_clearance)
     return ClearanceDetails(
@@ -168,6 +207,25 @@ def _clearance_from_centers(
         collision=bool(obstacle_clearance < 0.0),
         out_of_bounds=bool(boundary_clearance < 0.0),
     )
+
+
+def hull_clearance_details_from_offsets(
+    obstacle_map: ObstacleMap,
+    position_ned_m: FloatArray,
+    rotated_offsets_ned_m: FloatArray,
+    radius_m: float,
+) -> ClearanceDetails:
+    if not isinstance(obstacle_map, ObstacleMap):
+        raise TypeError("obstacle_map must be an ObstacleMap")
+    position = _point(position_ned_m, "position_ned_m")
+    offsets = np.asarray(rotated_offsets_ned_m, dtype=np.float64)
+    if offsets.ndim != 2 or offsets.shape[0] < 1 or offsets.shape[1] != 3:
+        raise ValueError("rotated_offsets_ned_m must have shape (N, 3) with N >= 1")
+    if not np.all(np.isfinite(offsets)):
+        raise ValueError("rotated_offsets_ned_m must contain only finite values")
+    if not np.isfinite(radius_m) or radius_m < 0.0:
+        raise ValueError("radius_m must be finite and non-negative")
+    return _clearance_from_centers(offsets + position.reshape(1, 3), radius_m, obstacle_map)
 
 
 def point_clearance_details(
