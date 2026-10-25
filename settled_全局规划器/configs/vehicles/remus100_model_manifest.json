@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "vehicle": "REMUS100",
+  "audit_date": "2026-10-25",
+  "status": "M5-B comparison complete; model thresholds proposed for user confirmation",
+  "sources": {
+    "pvs": {
+      "path": "python/PythonVehicleSimulator-master/src/python_vehicle_simulator/vehicles/remus100.py",
+      "archive_path": "python/PythonVehicleSimulator-master.zip",
+      "archive_commit": "a93d1938ba1f78f2580c24c73f003091b2f03cd0",
+      "source_mtime": "2026-09-26T15:55:21+08:00",
+      "sha256": "54e872b819a5609614ec31584347e4a304c271f3271abc87b7b4f32dd34b2943",
+      "reference": "Fossen 2021, Handbook of Marine Craft Hydrodynamics and Motion Control, 2nd ed.; Allen et al. 2000",
+      "implementation": "Python class with forward-Euler plant and actuator update"
+    },
+    "mss": {
+      "path": "simulator/MSS-master/CRAFT/AUV/models/remus100.m",
+      "archive_path": "simulator/MSS-master.zip",
+      "archive_commit": "1706e87e59bc280ad12bf187effed4a1b60ab507",
+      "source_mtime": "2026-10-14T23:31:27+08:00",
+      "sha256": "7478b59b58540d11d371778b2989633350eb222c16a71dc6f37cb19c88669b4f",
+      "release": "MSS 2.0",
+      "reference": "Fossen 2027, Handbook of Marine Craft Hydrodynamics and Motion Control, 3rd ed.; Allen et al. 2000",
+      "implementation": "Octave/MATLAB state derivative; SIMremus100.m integrates with RK4"
+    }
+  },
+  "shared_geometry": {
+    "length_m": 1.6,
+    "diameter_m": 0.19,
+    "center_of_gravity_z_m": 0.02,
+    "center_of_buoyancy_z_m": 0.0,
+    "fin_area_m2": 0.00665,
+    "rudder_area_m2": 0.0133,
+    "stern_plane_area_m2": 0.0133,
+    "propeller_diameter_m": 0.14,
+    "max_propeller_rpm": 1525
+  },
+  "source_differences": [
+    {
+      "item": "water_density",
+      "pvs": "1026 kg/m^3",
+      "mss": "1025 kg/m^3",
+      "consequence": "About 0.1% difference in hydrodynamic forces; record but do not silently normalize."
+    },
+    {
+      "item": "spheroid_axes_and_mass",
+      "pvs": "a=0.8000 m, b=0.0950 m; derived mass=31.0294 kg despite 31.9 kg in the module docstring",
+      "mss": "a=0.80768 m, b=0.095912 m; derived mass=31.9316 kg",
+      "consequence": "The project VehicleSpec uses 31.0 kg, matching PVS code, not the nominal 31.9 kg value or MSS."
+    },
+    {
+      "item": "fin_angle_limit",
+      "pvs": "15 deg in the plant",
+      "mss": "20 deg in the model and SIMremus100.m",
+      "consequence": "A 15 deg controller command saturates PVS but not MSS unless the MSS comparison applies a 15 deg cap."
+    },
+    {
+      "item": "high_speed_linear_damping",
+      "pvs": "exponential taper applied to surge and sway damping",
+      "mss": "exponential taper applied to surge damping only",
+      "consequence": "Sway and turning responses can differ even with identical mass and fin commands."
+    },
+    {
+      "item": "cross_flow_drag",
+      "pvs": "20-strip Hoerner model; sway force and yaw moment only",
+      "mss": "20-strip DNV cylinder model; sway, heave, yaw and pitch contributions",
+      "consequence": "Vertical-plane response and combined pitch/yaw maneuvers are not expected to match numerically."
+    },
+    {
+      "item": "ocean_current",
+      "pvs": "horizontal uniform current only; no vertical component",
+      "mss": "horizontal plus vertical uniform current through w_c",
+      "consequence": "Vertical-current scenarios must use MSS or an explicitly documented reduced model, never PVS silently."
+    },
+    {
+      "item": "actuator_dynamics",
+      "pvs": "first-order fin lag T_delta=0.1 s and propeller lag T_n=1.0 s",
+      "mss": "plant model accepts actual fin angles directly; SIMremus100.m updates RPM by a discrete 0.1 RPM step and has no fin lag",
+      "consequence": "The MSS runner must apply the same external fin/RPM actuator model before comparing plant states."
+    },
+    {
+      "item": "integration",
+      "pvs": "forward Euler at the caller sample time; current project uses 0.02 s",
+      "mss": "model returns xdot; SIMremus100.m defaults to RK4 at 0.05 s",
+      "consequence": "Integrator and step size are experiment variables and must be identical or included in a convergence study."
+    },
+    {
+      "item": "state_and_frame",
+      "pvs": "separate eta/nu; NED position, z positive down, Euler angles internally",
+      "mss": "12-state Euler or 13-state quaternion; NED position, z positive down",
+      "consequence": "The Python adapter must convert xyzw quaternions and preserve the NED z-down convention."
+    },
+    {
+      "item": "fin_signs",
+      "pvs": "positive rudder gives positive yaw moment; positive stern plane gives negative pitch moment",
+      "mss": "same model-force signs; SIMremus100.m passes -delta_s at its controller boundary",
+      "consequence": "Compare plant inputs delta_r, delta_s directly; do not copy the SIM controller's extra stern-plane negation into the adapter."
+    },
+    {
+      "item": "current_direction",
+      "pvs": "beta_c is the NED direction toward which the current flows",
+      "mss": "betaVc uses the same convention",
+      "consequence": "The current vector direction is consistent; body components are computed with beta_c - yaw."
+    }
+  ],
+  "project_contract_warnings": [
+    {
+      "item": "max_speed_mps",
+      "project_value": 4.0,
+      "source_values": "PVS documents 2.5 m/s at 1525 RPM in zero current; MSS SIM range check allows 0-5 m/s",
+      "action": "Do not use speeds above 2.5 m/s in M5 comparisons until a source and operating point are documented."
+    },
+    {
+      "item": "mass_kg",
+      "project_value": 31.0,
+      "source_values": "nominal 31.9 kg; PVS derived 31.0294 kg; MSS derived 31.9316 kg",
+      "action": "Keep native plant parameters for the first comparison, then run a mass/density sensitivity case."
+    }
+  ],
+  "frozen_m5_decisions": {
+    "paper_nominal_mass_kg": 31.9,
+    "native_plant_parameters": "Keep PVS and MSS native masses and densities; do not normalize vendor internals.",
+    "pvs_native_derived_mass_kg": 31.0294,
+    "mss_native_derived_mass_kg": 31.9316,
+    "common_command_cap_deg": 15.0,
+    "mss_vendor_default_cap_deg": 20.0,
+    "project_max_speed_mps": 2.5,
+    "external_actuator_model": "Use the PVS first-order fin and RPM lag for both plants.",
+    "integrator": "Use Euler for matched trajectory comparison; report MSS RK4 separately in the step-size convergence study.",
+    "comparison_levels": [
+      "Level N: implementation check with aligned physics toggles and identical state/inputs.",
+      "Level M: native PVS versus native MSS to quantify documented model-version differences."
+    ]
+  },
+  "model_differences_not_numerically_reconciled": [
+    "MSS uses a 1.0096-scaled spheroid and therefore a larger derived mass and inertia than PVS.",
+    "MSS uses DNV cylinder cross-flow terms in sway, heave, yaw and pitch; PVS uses a Hoerner model with sway and yaw only.",
+    "PVS applies high-speed exponential taper to surge and sway damping; MSS applies it only to surge damping.",
+    "A pure density increase has no first-order acceleration effect because mass, added mass, weight, buoyancy, drag and thrust all scale with density; the observed differences are not explained by 1025 versus 1026 kg/m3 alone."
+  ]
+}

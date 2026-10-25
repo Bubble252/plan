@@ -73,7 +73,7 @@ A1–A5 已确认，详细说明见 `04_分层接口与实验设计.md`：
 
 ## 当前阶段
 
-M0–M4.1 已完成：统一契约、三维全艇体几何/海流/指标、A*/RRT* 基线、3D ALOS、PVS REMUS 100 后端，以及跟踪控制器和六场景闭环基线均已打通。下一步是做 PVS/MSS 模型可信性检查，再决定是否调整控制器或进入恢复证书与候选规划器。最近邻审计结论保持为 Paper P 暂定 Level 3 — Medium Overlap；若 M7 采用无新增 AUV 机制的 BRS+RRT*，将升至 Level 2。AUV533 的模型对照和跨平台迁移不阻塞首篇 Paper P。
+M0–M5-B 已完成：统一契约、三维全艇体几何/海流/指标、A*/RRT* 基线、3D ALOS、PVS/MSS REMUS 100 后端、跟踪控制器、六个闭环对照场景，以及 8 个冻结三维场景均已打通。M5-B 的模型阈值已根据数据提出，正在等待确认；确认前不进入 M6。最近邻审计结论保持为 Paper P 暂定 Level 3 — Medium Overlap；若 M7 采用无新增 AUV 机制的 BRS+RRT*，将升至 Level 2。AUV533 的模型对照和跨平台迁移不阻塞首篇 Paper P。
 
 ## 目录说明
 
@@ -81,7 +81,6 @@ M0–M4.1 已完成：统一契约、三维全艇体几何/海流/指标、A*/RR
 
 ## 近期动作
 
-1. 运行 `PYTHONPATH=src ../.venv/bin/python scripts/run_m4_closed_loop.py` 复现六场景基线。
-2. 检查横向均匀流下 45.6% 舵饱和是否来自控制器增益、海流补偿或模型差异。
-3. 进入 M5：对照 PVS 与 MSS 的 REMUS 100 响应，冻结模型可信性阈值。
-4. 模型可信性通过后，再进入恢复余量与强基线阶段；不跳过强基线直接实现“新算法”。
+1. 运行 `../.venv/bin/python scripts/run_m5_model_validation.py` 复现 M5-B 的导数、开环、闭环和步长收敛对照。
+2. 查看 `outputs/m5_model_validation/report.md`，确认建议的模型阈值。
+3. 确认 M5 阈值后，再进入 M6 恢复余量与强基线阶段；不跳过强基线直接实现“新算法”。

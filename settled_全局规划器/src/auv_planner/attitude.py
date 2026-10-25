@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from math import atan2, cos, sin
+
 import numpy as np
 
 from .contracts import FloatArray
@@ -39,6 +41,46 @@ def forward_quaternion(direction_ned: FloatArray) -> FloatArray:
     return np.concatenate((axis * np.sin(half_angle), [np.cos(half_angle)])).astype(np.float64)
 
 
+def quaternion_from_euler(roll_rad: float, pitch_rad: float, yaw_rad: float) -> FloatArray:
+    """Return an xyzw quaternion from intrinsic ZYX Euler angles."""
+
+    cr = cos(roll_rad / 2.0)
+    sr = sin(roll_rad / 2.0)
+    cp = cos(pitch_rad / 2.0)
+    sp = sin(pitch_rad / 2.0)
+    cy = cos(yaw_rad / 2.0)
+    sy = sin(yaw_rad / 2.0)
+    quat = np.array(
+        [
+            sr * cp * cy - cr * sp * sy,
+            cr * sp * cy + sr * cp * sy,
+            cr * cp * sy - sr * sp * cy,
+            cr * cp * cy + sr * sp * sy,
+        ],
+        dtype=np.float64,
+    )
+    return quat / np.linalg.norm(quat)
+
+
+def euler_from_quaternion(quat_xyzw: FloatArray) -> FloatArray:
+    """Return intrinsic ZYX roll, pitch and yaw angles in radians."""
+
+    quat = np.asarray(quat_xyzw, dtype=np.float64)
+    if quat.shape != (4,):
+        raise ValueError("quat_xyzw must have shape (4,)")
+    if not np.all(np.isfinite(quat)):
+        raise ValueError("quat_xyzw must contain only finite values")
+    norm = float(np.linalg.norm(quat))
+    if norm <= 0.0:
+        raise ValueError("quat_xyzw must have non-zero norm")
+    x, y, z, w = quat / norm
+    roll = atan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y))
+    pitch_argument = float(np.clip(2.0 * (w * y - z * x), -1.0, 1.0))
+    pitch = float(np.arcsin(pitch_argument))
+    yaw = atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
+    return np.array([roll, pitch, yaw], dtype=np.float64)
+
+
 def quaternion_angle(quat_a: FloatArray, quat_b: FloatArray) -> float:
     first = np.asarray(quat_a, dtype=np.float64)
     second = np.asarray(quat_b, dtype=np.float64)
@@ -51,4 +93,9 @@ def quaternion_angle(quat_a: FloatArray, quat_b: FloatArray) -> float:
     return float(2.0 * np.arccos(np.clip(abs(float(np.dot(first, second))), -1.0, 1.0)))
 
 
-__all__ = ["forward_quaternion", "quaternion_angle"]
+__all__ = [
+    "euler_from_quaternion",
+    "forward_quaternion",
+    "quaternion_angle",
+    "quaternion_from_euler",
+]
