@@ -10,7 +10,7 @@ requires-python = ">=3.10"
 dependencies = ["numpy>=2.0"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "mypy>=1.10,<2"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -19,3 +19,11 @@ where = ["src"]
 pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-ra"
+
+[tool.mypy]
+python_version = "3.10"
+files = ["src/auv_planner", "tests"]
+mypy_path = "src"
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true

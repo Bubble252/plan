@@ -58,7 +58,7 @@ class EvaluationRecord:
             "status": self.plan.status.value,
             "success": self.result.success,
             "collision": self.result.collision,
-            "out_of_bounds": trajectory is not None and "out_of_bounds" in (self.result.failure_reason or ""),
+            "out_of_bounds": self.result.out_of_bounds,
             "min_clearance_m": self.result.min_clearance_m,
             "path_length_m": self.result.path_length_m,
             "duration_s": self.result.duration_s,
@@ -87,6 +87,7 @@ def evaluate_plan(request: PlanRequest, plan: PlanResult) -> EvalResult:
         return EvalResult(
             success=False,
             collision=False,
+            out_of_bounds=False,
             min_clearance_m=0.0,
             path_length_m=0.0,
             duration_s=0.0,
@@ -119,6 +120,7 @@ def evaluate_plan(request: PlanRequest, plan: PlanResult) -> EvalResult:
     return EvalResult(
         success=success,
         collision=path_metrics.collision,
+        out_of_bounds=path_metrics.out_of_bounds,
         min_clearance_m=path_metrics.min_clearance_m,
         path_length_m=path_metrics.path_length_m,
         duration_s=path_metrics.duration_s,

@@ -69,6 +69,12 @@ def _positive(value: float, name: str) -> float:
     return float(value)
 
 
+def _optional_positive(value: float | None, name: str) -> float | None:
+    if value is None:
+        return None
+    return _positive(value, name)
+
+
 @dataclass(frozen=True)
 class VehicleSpec:
     name: str
@@ -80,6 +86,11 @@ class VehicleSpec:
     max_accel_mps2: float
     max_yaw_rate_rps: float
     max_pitch_rate_rps: float
+    max_rudder_angle_rad: float | None = None
+    max_rudder_rate_rad_s: float | None = None
+    max_stern_plane_angle_rad: float | None = None
+    max_stern_plane_rate_rad_s: float | None = None
+    max_propeller_rpm: float | None = None
 
     def __post_init__(self) -> None:
         if not self.name:
@@ -101,6 +112,14 @@ class VehicleSpec:
             raise ValueError("min_speed_mps must not exceed max_speed_mps")
         if self.diameter_m > self.length_m:
             raise ValueError("diameter_m must not exceed length_m")
+        for name in (
+            "max_rudder_angle_rad",
+            "max_rudder_rate_rad_s",
+            "max_stern_plane_angle_rad",
+            "max_stern_plane_rate_rad_s",
+            "max_propeller_rpm",
+        ):
+            object.__setattr__(self, name, _optional_positive(getattr(self, name), name))
 
 
 @dataclass(frozen=True)
@@ -435,6 +454,8 @@ class Reference:
             )
         if self.valid_until_s is not None:
             _non_negative(self.valid_until_s, "valid_until_s")
+            if self.valid_until_s < self.stamp_s:
+                raise ValueError("valid_until_s must not precede stamp_s")
 
 
 @dataclass(frozen=True)
@@ -462,6 +483,8 @@ class LocalObservation:
 
 @dataclass(frozen=True)
 class ControlProposal:
+    """High-level body-frame motion request before actuator allocation."""
+
     stamp_s: float
     linear_accel_body_mps2: FloatArray
     angular_velocity_body_rps: FloatArray
@@ -483,6 +506,65 @@ class ControlProposal:
             _non_negative(self.valid_until_s, "valid_until_s")
             if self.valid_until_s < self.stamp_s:
                 raise ValueError("valid_until_s must not precede stamp_s")
+
+
+@runtime_checkable
+class ActuatorCommand(Protocol):
+    """Platform-neutral command interface consumed by a simulator backend."""
+
+    @property
+    def stamp_s(self) -> float:
+        ...
+
+    @property
+    def valid_until_s(self) -> float | None:
+        ...
+
+
+@dataclass(frozen=True)
+class Remus100ActuatorCommand:
+    """REMUS 100 actuator command after tracking control and safety filtering."""
+
+    stamp_s: float
+    rudder_angle_rad: float
+    stern_plane_angle_rad: float
+    propeller_rpm: float
+    valid_until_s: float | None = None
+
+    def __post_init__(self) -> None:
+        _non_negative(self.stamp_s, "stamp_s")
+        for name in ("rudder_angle_rad", "stern_plane_angle_rad", "propeller_rpm"):
+            value = getattr(self, name)
+            if not np.isfinite(value):
+                raise ValueError(f"{name} must be finite")
+            object.__setattr__(self, name, float(value))
+        if self.valid_until_s is not None:
+            _non_negative(self.valid_until_s, "valid_until_s")
+            if self.valid_until_s < self.stamp_s:
+                raise ValueError("valid_until_s must not precede stamp_s")
+
+
+@dataclass(frozen=True)
+class SimulationSnapshot:
+    """Synchronized plant state, world model, and applied actuator state."""
+
+    state: State
+    world: WorldSnapshot
+    actuator_state: ActuatorCommand | None = None
+    diagnostics: Mapping[str, float] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.state, State):
+            raise TypeError("state must be a State")
+        if not isinstance(self.world, WorldSnapshot):
+            raise TypeError("world must be a WorldSnapshot")
+        if abs(self.state.t_s - self.world.t_s) > 1e-9:
+            raise ValueError("state and world timestamps must match")
+        if self.actuator_state is not None and not isinstance(self.actuator_state, ActuatorCommand):
+            raise TypeError("actuator_state must be an ActuatorCommand")
+        if self.actuator_state is not None and abs(self.actuator_state.stamp_s - self.state.t_s) > 1e-9:
+            raise ValueError("actuator_state and state timestamps must match")
+        object.__setattr__(self, "diagnostics", dict(self.diagnostics))
 
 
 @dataclass(frozen=True)
@@ -520,6 +602,7 @@ class SafeCommand:
 class EvalResult:
     success: bool
     collision: bool
+    out_of_bounds: bool
     min_clearance_m: float
     path_length_m: float
     duration_s: float

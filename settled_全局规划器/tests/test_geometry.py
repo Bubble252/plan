@@ -54,7 +54,7 @@ def make_trajectory(
     times = np.linspace(0.0, 1.0, rows) if t_s is None else np.asarray(t_s, dtype=np.float64)
     return Trajectory(
         trajectory_id="test",
-        t_s=times,
+        t_s=times.astype(np.float64, copy=False),
         position_ned_m=positions,
         quat_xyzw=quaternions,
         linear_velocity_body_mps=np.zeros((rows, 3)),

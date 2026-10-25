@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+from dataclasses import replace
 
 from auv_planner.contracts import PlanResult, PlanStatus
 from auv_planner.evaluation import (
@@ -73,3 +74,18 @@ def test_metrics_csv_and_run_log_are_written(tmp_path) -> None:
     assert rows[1]["goal_distance_m"] == ""
     assert log["request_id"].startswith("m3_empty:AStarPlanner")
     assert "diagnostics" in log
+
+
+def test_out_of_bounds_is_csv_field_not_failure_reason_substring() -> None:
+    record = run_scenario(
+        empty_scene(),
+        AStarPlanner(resolution_m=0.5, timeout_s=3.0, collision_step_m=0.1),
+        seed=0,
+    )
+    record = replace(
+        record,
+        result=replace(record.result, out_of_bounds=True, failure_reason="collision"),
+    )
+
+    assert record.csv_row()["out_of_bounds"] is True
+    assert "out_of_bounds" not in (record.result.failure_reason or "")

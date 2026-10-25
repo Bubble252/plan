@@ -390,7 +390,8 @@ class OccupancyGrid:
 
     @property
     def shape(self) -> tuple[int, int, int]:
-        return tuple(int(size) for size in self.occupied.shape)
+        rows, cols, depths = self.occupied.shape
+        return int(rows), int(cols), int(depths)
 
     @property
     def bounds_ned_m(self) -> FloatArray:

@@ -16,6 +16,7 @@ from .contracts import (
 
 
 def remus100_vehicle() -> VehicleSpec:
+    max_fin_angle_rad = np.deg2rad(15.0)
     return VehicleSpec(
         name="REMUS100",
         length_m=1.6,
@@ -26,6 +27,11 @@ def remus100_vehicle() -> VehicleSpec:
         max_accel_mps2=1.0,
         max_yaw_rate_rps=0.5,
         max_pitch_rate_rps=0.5,
+        max_rudder_angle_rad=max_fin_angle_rad,
+        max_rudder_rate_rad_s=max_fin_angle_rad / 0.1,
+        max_stern_plane_angle_rad=max_fin_angle_rad,
+        max_stern_plane_rate_rad_s=max_fin_angle_rad / 0.1,
+        max_propeller_rpm=1525.0,
     )
 
 

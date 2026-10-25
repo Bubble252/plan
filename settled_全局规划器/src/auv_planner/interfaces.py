@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Protocol, runtime_checkable
 
 from .contracts import (
+    ActuatorCommand,
     CapabilitySet,
     ControlProposal,
     LocalObservation,
@@ -12,6 +13,7 @@ from .contracts import (
     SafeCommand,
     SafetyContext,
     ScenarioConfig,
+    SimulationSnapshot,
     State,
     Trajectory,
     WorldSnapshot,
@@ -48,9 +50,15 @@ class SafetyFilter(Protocol):
 
 
 @runtime_checkable
-class SimulatorBackend(Protocol):
-    def reset(self, scenario: ScenarioConfig, seed: int) -> WorldSnapshot:
+class TrackingController(Protocol):
+    def control(self, state: State, reference: Reference) -> ActuatorCommand:
         ...
 
-    def step(self, command: ControlProposal) -> WorldSnapshot:
+
+@runtime_checkable
+class SimulatorBackend(Protocol):
+    def reset(self, scenario: ScenarioConfig, seed: int) -> SimulationSnapshot:
+        ...
+
+    def step(self, command: ActuatorCommand) -> SimulationSnapshot:
         ...

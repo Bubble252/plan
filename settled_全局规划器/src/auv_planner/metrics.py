@@ -57,6 +57,7 @@ class PathMetrics:
         return EvalResult(
             success=success,
             collision=self.collision,
+            out_of_bounds=self.out_of_bounds,
             min_clearance_m=self.min_clearance_m,
             path_length_m=self.path_length_m,
             duration_s=self.duration_s,
