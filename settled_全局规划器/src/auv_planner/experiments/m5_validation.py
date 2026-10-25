@@ -101,6 +101,12 @@ def run_m5_validation(output_dir: Path | str, *, seed: int = 0) -> dict[str, Any
     open_loop_rows, traces = run_open_loop_comparison()
     closed_loop_rows, closed_loop_results = run_closed_loop_comparison(seed=seed)
     convergence_rows = run_step_convergence()
+    threshold_audit = build_threshold_audit(
+        derivative_rows,
+        open_loop_rows,
+        closed_loop_rows,
+        convergence_rows,
+    )
 
     _write_csv(root / "derivative_comparison.csv", derivative_rows)
     _write_csv(root / "mass_density_sensitivity.csv", mass_rows)
@@ -115,10 +121,13 @@ def run_m5_validation(output_dir: Path | str, *, seed: int = 0) -> dict[str, Any
         "open_loop_cases": len(open_loop_rows),
         "closed_loop_cases": len(closed_loop_rows),
         "convergence_rows": len(convergence_rows),
-        "proposed_thresholds": proposed_model_thresholds(),
+        "model_thresholds": proposed_model_thresholds(),
     }
     (root / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    (root / "threshold_audit.json").write_text(
+        json.dumps(threshold_audit, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     _write_report(
         root / "report.md",
@@ -585,7 +594,93 @@ def proposed_model_thresholds() -> dict[str, float | str]:
         "closed_loop_common_trajectory_rms_max_m": 0.25,
         "constraint_violations_max": 0.0,
         "euler_step_0p02_normalized_error_max": 0.005,
-        "status": "proposed for user confirmation; not yet a paper success threshold",
+        "status": "frozen by user on 2026-10-25; project acceptance thresholds, not industry standards",
+    }
+
+
+def _audit_entry(measured: float, threshold: float) -> dict[str, float | bool]:
+    return {
+        "measured": float(measured),
+        "pass": bool(measured <= threshold + 1e-12),
+        "threshold": float(threshold),
+    }
+
+
+def _row_float(row: dict[str, object], key: str) -> float:
+    value = row[key]
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        raise TypeError(f"{key} must be numeric, got {type(value).__name__}")
+    return float(value)
+
+
+def build_threshold_audit(
+    derivative_rows: Sequence[dict[str, object]],
+    open_loop_rows: Sequence[dict[str, object]],
+    closed_loop_rows: Sequence[dict[str, object]],
+    convergence_rows: Sequence[dict[str, object]],
+) -> dict[str, object]:
+    thresholds = proposed_model_thresholds()
+    derivative_by_case = {str(row["case"]): row for row in derivative_rows}
+    calm_cases = ("calm_straight", "calm_rudder", "calm_stern_plane", "combined_attitude")
+    calm_derivative = max(
+        _row_float(derivative_by_case[name], "relative_l2") for name in calm_cases
+    )
+    depth_shear_derivative = _row_float(derivative_by_case["depth_shear"], "relative_l2")
+    cross_current_derivative = _row_float(
+        derivative_by_case["cross_current"], "relative_l2"
+    )
+    open_loop_error = max(
+        _row_float(row, "normalized_final_position_error") for row in open_loop_rows
+    )
+    completion_time_difference = max(
+        abs(_row_float(row, "completion_time_difference_s")) for row in closed_loop_rows
+    )
+    common_trajectory_rms = max(
+        _row_float(row, "common_sample_trajectory_rms_m") for row in closed_loop_rows
+    )
+    constraint_violations = sum(
+        _row_float(row, "pvs_constraint_violations")
+        + _row_float(row, "mss_constraint_violations")
+        for row in closed_loop_rows
+    )
+    euler_error = max(
+        _row_float(row, "normalized_final_position_error")
+        for row in convergence_rows
+        if str(row["model"]) in {"pvs_euler", "mss_euler"}
+        and _row_float(row, "sample_time_s") == 0.02
+    )
+    entries = {
+        "calm_derivative_relative_l2": _audit_entry(
+            calm_derivative, float(thresholds["calm_derivative_relative_l2_max"])
+        ),
+        "depth_shear_derivative_relative_l2": _audit_entry(
+            depth_shear_derivative, float(thresholds["calm_derivative_relative_l2_max"])
+        ),
+        "cross_current_derivative_relative_l2": _audit_entry(
+            cross_current_derivative,
+            float(thresholds["cross_current_derivative_relative_l2_max"]),
+        ),
+        "open_loop_normalized_final_position_error": _audit_entry(
+            open_loop_error, float(thresholds["open_loop_final_position_normalized_max"])
+        ),
+        "closed_loop_completion_time_difference_s": _audit_entry(
+            completion_time_difference,
+            float(thresholds["closed_loop_completion_time_difference_max_s"]),
+        ),
+        "closed_loop_common_trajectory_rms_m": _audit_entry(
+            common_trajectory_rms,
+            float(thresholds["closed_loop_common_trajectory_rms_max_m"]),
+        ),
+        "constraint_violations": _audit_entry(
+            constraint_violations, float(thresholds["constraint_violations_max"])
+        ),
+        "euler_0p02_normalized_error": _audit_entry(
+            euler_error, float(thresholds["euler_step_0p02_normalized_error_max"])
+        ),
+    }
+    return {
+        "all_pass": all(bool(entry["pass"]) for entry in entries.values()),
+        **entries,
     }
 
 
@@ -823,6 +918,12 @@ def _write_report(
     closed_loop_rows: Sequence[dict[str, Any]],
     convergence_rows: Sequence[dict[str, Any]],
 ) -> None:
+    derivative_by_case = {str(row["case"]): row for row in derivative_rows}
+    calm_max = max(
+        _row_float(derivative_by_case[name], "relative_l2")
+        for name in ("calm_straight", "calm_rudder", "calm_stern_plane", "combined_attitude")
+    )
+    depth_shear_max = _row_float(derivative_by_case["depth_shear"], "relative_l2")
     lines = [
         "# M5-B REMUS 100 模型可信性与场景冻结",
         "",
@@ -977,10 +1078,11 @@ def _write_report(
     lines.extend(
         [
             "",
-            "## 暂定模型验收阈值（待确认）",
+            "## 已冻结模型验收阈值（2026-10-25）",
             "",
             "- 坐标、单位、状态顺序和舵面符号：轴与符号一致；数值零分量保持在 1e-8 内。",
-            "- 平静水动力导数：PVS/MSS 相对 L2 误差 ≤ 7%。",
+            f"- 平静水动力导数：PVS/MSS 相对 L2 误差 ≤ 7%（本次最大 {calm_max:.3%}）。",
+            f"- 深度剪切流导数：采用同一 7% 门槛并单独报告（本次最大 {depth_shear_max:.3%}）。",
             "- 横向均匀流导数：允许 ≤ 35%，因为两侧横流模型分别为 Hoerner 与 DNV cylinder。",
             "- 开环末端轨迹：归一化位置差 ≤ 2%。",
             "- 闭环：完成时间差 ≤ 0.5 s，共同样本轨迹 RMS ≤ 0.25 m，约束违反必须为 0。",
@@ -1011,6 +1113,7 @@ __all__ = [
     "ClosedLoopCase",
     "OpenLoopCase",
     "OpenLoopTrace",
+    "build_threshold_audit",
     "closed_loop_cases",
     "compare_traces",
     "derivative_cases",
