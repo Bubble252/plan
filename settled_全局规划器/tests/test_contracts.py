@@ -97,6 +97,37 @@ def test_invalid_certificate_requires_reason() -> None:
         RecoveryCertificate(valid=False, assumptions=(), fault_set=(), backup_maneuvers=())
 
 
+def test_valid_certificate_requires_window_assumptions_and_backup() -> None:
+    with pytest.raises(ValueError, match="validity window"):
+        RecoveryCertificate(
+            valid=True,
+            assumptions=("finite horizon",),
+            fault_set=("nominal@0s",),
+            backup_maneuvers=("brake",),
+        )
+    with pytest.raises(ValueError, match="backup maneuver"):
+        RecoveryCertificate(
+            valid=True,
+            assumptions=("finite horizon",),
+            fault_set=("nominal@0s",),
+            backup_maneuvers=(),
+            valid_from_s=0.0,
+            valid_until_s=1.0,
+        )
+
+    certificate = RecoveryCertificate(
+        valid=True,
+        assumptions=("finite horizon",),
+        fault_set=("nominal@0s",),
+        backup_maneuvers=("brake",),
+        valid_from_s=0.0,
+        valid_until_s=1.0,
+        margin_m=0.1,
+    )
+    assert certificate.valid_from_s == 0.0
+    assert certificate.margin_m == 0.1
+
+
 def test_ok_plan_requires_trajectory() -> None:
     with pytest.raises(ValueError, match="require a trajectory"):
         PlanResult(

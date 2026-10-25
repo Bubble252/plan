@@ -334,15 +334,36 @@ class RecoveryCertificate:
     assumptions: tuple[str, ...]
     fault_set: tuple[str, ...]
     backup_maneuvers: tuple[str, ...]
+    valid_from_s: float | None = None
     valid_until_s: float | None = None
+    margin_m: float | None = None
     reason: str | None = None
+    diagnostics: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "assumptions", tuple(self.assumptions))
         object.__setattr__(self, "fault_set", tuple(self.fault_set))
         object.__setattr__(self, "backup_maneuvers", tuple(self.backup_maneuvers))
+        if self.valid_from_s is not None:
+            _non_negative(self.valid_from_s, "valid_from_s")
         if self.valid_until_s is not None:
             _non_negative(self.valid_until_s, "valid_until_s")
+        if (
+            self.valid_from_s is not None
+            and self.valid_until_s is not None
+            and self.valid_until_s < self.valid_from_s
+        ):
+            raise ValueError("valid_until_s must not precede valid_from_s")
+        if self.margin_m is not None and not np.isfinite(self.margin_m):
+            raise ValueError("margin_m must be finite")
+        object.__setattr__(self, "diagnostics", dict(self.diagnostics))
+        if self.valid:
+            if self.valid_from_s is None or self.valid_until_s is None:
+                raise ValueError("valid certificates require a validity window")
+            if not self.assumptions:
+                raise ValueError("valid certificates require explicit assumptions")
+            if not self.backup_maneuvers:
+                raise ValueError("valid certificates require at least one backup maneuver")
         if not self.valid and not self.reason:
             raise ValueError("invalid certificates require a reason")
 

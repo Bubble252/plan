@@ -1,0 +1,270 @@
+{
+  "certificate_issuance": "only full_hull with vehicle limits may emit valid=true",
+  "claims": {
+    "communication_faults": false,
+    "continuous_time": false,
+    "current_envelope": "M5-validated 0.30 m/s uniform and depth-shear fields only",
+    "energy_depletion": false,
+    "full_hull": true,
+    "sensor_noise": false
+  },
+  "diagnosis_delays_s": [
+    0.0,
+    1.0,
+    3.0,
+    5.0
+  ],
+  "faults": [
+    {
+      "effectiveness": 1.0,
+      "kind": "nominal",
+      "name": "nominal",
+      "residual_rate_fraction": 1.0,
+      "stuck_sign": 0
+    },
+    {
+      "effectiveness": 0.5,
+      "kind": "thruster_efficiency_loss",
+      "name": "thruster_efficiency_loss_0.50",
+      "residual_rate_fraction": 1.0,
+      "stuck_sign": 0
+    },
+    {
+      "effectiveness": 1.0,
+      "kind": "yaw_fin_stuck",
+      "name": "yaw_fin_stuck_positive",
+      "residual_rate_fraction": 1.0,
+      "stuck_sign": 1
+    },
+    {
+      "effectiveness": 1.0,
+      "kind": "yaw_fin_stuck",
+      "name": "yaw_fin_stuck_negative",
+      "residual_rate_fraction": 1.0,
+      "stuck_sign": -1
+    },
+    {
+      "effectiveness": 1.0,
+      "kind": "pitch_fin_stuck",
+      "name": "pitch_fin_stuck_positive",
+      "residual_rate_fraction": 1.0,
+      "stuck_sign": 1
+    },
+    {
+      "effectiveness": 1.0,
+      "kind": "pitch_fin_stuck",
+      "name": "pitch_fin_stuck_negative",
+      "residual_rate_fraction": 1.0,
+      "stuck_sign": -1
+    }
+  ],
+  "key_nodes": [
+    {
+      "current": {
+        "kind": "uniform",
+        "velocity_ned_mps": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "description": "M5 open-water start; checks actuator-space recovery without obstacles",
+      "name": "open_water_start",
+      "scenario_name": "m5_open_water",
+      "state_linear_velocity_body_mps": [
+        1.5,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        -6.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "current": {
+        "kind": "uniform",
+        "velocity_ned_mps": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "description": "M5 sphere-detour start; detour and clearance margin are available",
+      "name": "sphere_start",
+      "scenario_name": "m5_sphere_detour",
+      "state_linear_velocity_body_mps": [
+        1.5,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        -6.0,
+        -0.5,
+        0.5
+      ]
+    },
+    {
+      "current": {
+        "kind": "uniform",
+        "velocity_ned_mps": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "description": "M5 gate start; recovery must respect the gate and downstream pillar",
+      "name": "gate_start",
+      "scenario_name": "m5_cylinder_gate",
+      "state_linear_velocity_body_mps": [
+        1.5,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        -6.0,
+        -1.0,
+        0.0
+      ]
+    },
+    {
+      "current": {
+        "kind": "uniform",
+        "velocity_ned_mps": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "description": "M5 S-bend start; narrow lateral space stresses minimum-radius turns",
+      "name": "s_bend_start",
+      "scenario_name": "m5_s_bend_corridor",
+      "state_linear_velocity_body_mps": [
+        1.5,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        -6.0,
+        -0.5,
+        0.0
+      ]
+    },
+    {
+      "current": {
+        "kind": "depth_shear",
+        "reference_velocity_ned_mps": [
+          0.25,
+          0.0,
+          0.0
+        ],
+        "shear_ned_per_m": [
+          0.02,
+          0.01,
+          0.0
+        ]
+      },
+      "description": "M5 depth-shear gate start using the validated shear field",
+      "name": "shear_gate_start",
+      "scenario_name": "m5_depth_shear_gate",
+      "state_linear_velocity_body_mps": [
+        1.5,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        -6.0,
+        -1.0,
+        0.0
+      ]
+    },
+    {
+      "current": {
+        "kind": "uniform",
+        "velocity_ned_mps": [
+          0.0,
+          0.3,
+          0.0
+        ]
+      },
+      "description": "open-water node with the M5-validated 0.30 m/s uniform cross current",
+      "name": "cross_current_open_center",
+      "scenario_name": "m6_open_water_cross_current_0.30",
+      "state_linear_velocity_body_mps": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        -2.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "current": {
+        "kind": "uniform",
+        "velocity_ned_mps": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "description": "artificial narrow closed tube; current pose is clearance-safe but no 10 s backup exists",
+      "name": "dead_end_no_recovery",
+      "scenario_name": "m6_dead_end",
+      "state_linear_velocity_body_mps": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "model": {
+    "certificate_validity_s": 1.0,
+    "clearance_model": "full_hull",
+    "constraint_mode": "vehicle",
+    "continuous_time_guarantee": false,
+    "error_bounds": {
+      "current_mps": 0.005,
+      "heading_rad": 0.01,
+      "position_m": 0.02
+    },
+    "horizon_s": 10.0,
+    "max_pitch_angle_deg": 29.999999999999996,
+    "required_clearance_m": 0.25,
+    "sample_time_s": 0.1
+  },
+  "schema_version": 1,
+  "status": "M6 frozen recovery configuration",
+  "x0_scope": "nominal fault at 0 s; isolates point-vs-hull and turn-envelope effects",
+  "x0_variants": [
+    {
+      "clearance_model": "full_hull",
+      "constraint_mode": "vehicle",
+      "name": "full_hull_vehicle_limits"
+    },
+    {
+      "clearance_model": "point_diagnostic",
+      "constraint_mode": "vehicle",
+      "name": "point_vehicle_limits"
+    },
+    {
+      "clearance_model": "full_hull",
+      "constraint_mode": "unbounded_turn_diagnostic",
+      "name": "full_hull_unbounded_turn"
+    },
+    {
+      "clearance_model": "point_diagnostic",
+      "constraint_mode": "unbounded_turn_diagnostic",
+      "name": "point_unbounded_turn"
+    }
+  ],
+  "x1_rule": "first delay in the frozen grid for which any maneuver under the fault is unsafe"
+}
