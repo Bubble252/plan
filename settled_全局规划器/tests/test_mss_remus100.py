@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import shutil
 from math import radians
 from pathlib import Path
-import shutil
 
 import numpy as np
 import pytest
@@ -25,7 +25,6 @@ from auv_planner.dynamics.mss_remus100 import (
 )
 from auv_planner.dynamics.remus100 import PvsRemus100Backend
 from auv_planner.scenarios import remus100_vehicle
-
 
 OCTAVE_AVAILABLE = shutil.which("octave") is not None
 MSS_AVAILABLE = _default_mss_source_dir().is_dir() and _default_daemon_script().is_file()

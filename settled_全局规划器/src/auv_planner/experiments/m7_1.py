@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from collections import Counter
-from dataclasses import asdict, dataclass, replace
 import csv
 import json
+from collections import Counter
+from collections.abc import Iterable, Sequence
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from time import perf_counter
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 import numpy as np
 
@@ -41,7 +42,6 @@ from ..recovery import (
     prefilter_state,
 )
 from .m7_budget import hardware_manifest, m7_probes
-
 
 M71_AUDIT_INTERVAL_S = 1.0
 M71_ONLINE_BUDGET_S = 10.0
@@ -516,7 +516,7 @@ def audit_trajectory(
     )
     online_results: list[RecoveryQueryResult | None] = []
     online_time = 0.0
-    for state, prefilter in zip(states, prefilters):
+    for state, prefilter in zip(states, prefilters, strict=True):
         if prefilter.rejected:
             online_results.append(None)
             continue
@@ -542,7 +542,7 @@ def audit_trajectory(
     )
     full_results: list[RecoveryQueryResult | None] = []
     full_time = 0.0
-    for state, prefilter in zip(states, prefilters):
+    for state, prefilter in zip(states, prefilters, strict=True):
         if prefilter.rejected:
             full_results.append(None)
             continue
@@ -563,7 +563,7 @@ def audit_trajectory(
     valid_from: float | None
     valid_until: float | None
     for index, (state, prefilter, online, full) in enumerate(
-        zip(states, prefilters, online_results, full_results)
+        zip(states, prefilters, online_results, full_results, strict=True)
     ):
         if prefilter.rejected:
             prefilter_reason: str | None = f"prefilter:{prefilter.reason}"

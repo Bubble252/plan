@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
 import time
+from dataclasses import dataclass, replace
 from typing import Any
 
 import numpy as np

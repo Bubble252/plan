@@ -136,7 +136,9 @@ def project_onto_path(position_ned_m: FloatArray, points_ned_m: FloatArray) -> P
     best_distance_sq = float("inf")
     best_along_m = 0.0
     best_projection = points[0]
-    for index, (start, tangent, length) in enumerate(zip(points[:-1], tangents, segment_lengths)):
+    for index, (start, tangent, length) in enumerate(
+        zip(points[:-1], tangents, segment_lengths, strict=True)
+    ):
         along_m = float(np.clip(np.dot(position - start, tangent), 0.0, length))
         projection = start + along_m * tangent
         distance_sq = float(np.dot(position - projection, position - projection))

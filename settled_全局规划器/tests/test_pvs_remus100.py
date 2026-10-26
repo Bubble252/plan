@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from auv_planner.contracts import (
+    CurrentField,
     ObstacleMap,
     Remus100ActuatorCommand,
     ScenarioConfig,
@@ -48,7 +49,9 @@ def make_state(
     )
 
 
-def make_scenario(current=UniformCurrent(velocity_ned_mps=np.zeros(3))) -> ScenarioConfig:
+def make_scenario(current: CurrentField | None = None) -> ScenarioConfig:
+    if current is None:
+        current = UniformCurrent(velocity_ned_mps=np.zeros(3))
     world = WorldSnapshot(
         t_s=2.0,
         obstacle_map=ObstacleMap(

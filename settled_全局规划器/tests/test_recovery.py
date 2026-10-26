@@ -23,9 +23,9 @@ from auv_planner.experiments.m6_recovery import (
 )
 from auv_planner.geometry import hull_clearance_details, hull_from_vehicle
 from auv_planner.recovery import (
+    DEFAULT_FAULTS,
     ClearanceModel,
     ConstraintMode,
-    DEFAULT_FAULTS,
     FaultKind,
     ManeuverKind,
     RecoverabilityChecker,
@@ -33,7 +33,6 @@ from auv_planner.recovery import (
     build_maneuvers,
 )
 from auv_planner.scenarios import m5_open_water_scene, remus100_vehicle
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = REPO_ROOT / "configs" / "experiments" / "m6_recovery.json"

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import os
+import sys
 from functools import lru_cache
 from math import atan2, hypot
 from pathlib import Path
-import os
-import sys
 from typing import Any
 
 import numpy as np
@@ -25,7 +25,7 @@ from ..contracts import (
 
 
 @lru_cache(maxsize=4)
-def _load_pvs(source_dir_text: str):
+def _load_pvs(source_dir_text: str) -> tuple[Any, Any]:
     source_dir = Path(source_dir_text).expanduser().resolve()
     if not source_dir.is_dir():
         raise FileNotFoundError(f"PVS source directory does not exist: {source_dir}")

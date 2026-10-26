@@ -101,7 +101,7 @@ def test_sample_trajectory_states_includes_both_ends_without_exceeding_interval(
     assert np.allclose(states[-1].position_ned_m, np.array([2.4, 0.0, 0.0]))
     assert all(
         later.t_s - earlier.t_s <= 1.0 + 1e-12
-        for earlier, later in zip(states, states[1:])
+        for earlier, later in zip(states, states[1:], strict=False)
     )
 
 
@@ -166,7 +166,10 @@ def test_repair_candidates_are_deterministic_and_use_safe_anchor_first() -> None
     assert len(first) == 3
     assert [source for _, source in first] == ["safe_anchor", "offset_1m", "offset_1m"]
     assert np.allclose(first[0][0].position_ned_m, np.array([0.0, 1.0, 0.0]))
-    assert all(np.array_equal(a[0].position_ned_m, b[0].position_ned_m) for a, b in zip(first, second))
+    assert all(
+        np.array_equal(a[0].position_ned_m, b[0].position_ned_m)
+        for a, b in zip(first, second, strict=True)
+    )
 
 
 def test_m7_1_writes_real_path_audit_artifacts(tmp_path: Path) -> None:

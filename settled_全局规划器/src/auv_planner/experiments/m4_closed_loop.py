@@ -157,7 +157,7 @@ def _turn_trajectory() -> Trajectory:
         [arc[-1] + distance * direction for distance in np.linspace(1.0, 10.0, 10)],
         dtype=np.float64,
     )
-    return _trajectory(np.vstack((arc, extension)))
+    return _trajectory(np.asarray(np.vstack((arc, extension)), dtype=np.float64))
 
 
 def _trajectory(points_ned_m: FloatArray) -> Trajectory:

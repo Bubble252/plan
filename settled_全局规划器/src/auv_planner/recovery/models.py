@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from enum import Enum
 import hashlib
 import json
+from dataclasses import dataclass, field
+from enum import Enum
 from math import pi, radians, sin
 from typing import Any
 

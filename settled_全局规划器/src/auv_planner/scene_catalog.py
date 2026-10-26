@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
-import numpy as np
 
 from .contracts import Obstacle, ScenarioConfig, UniformCurrent
 from .current import DepthShearCurrent

@@ -12,7 +12,6 @@ from auv_planner.scene_catalog import (
     scene_catalog_manifest,
 )
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = REPO_ROOT / "configs" / "scenes" / "m5_scene_catalog.json"
 

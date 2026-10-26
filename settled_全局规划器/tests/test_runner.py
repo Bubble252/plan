@@ -13,6 +13,7 @@ from auv_planner.evaluation import (
 from auv_planner.planners.astar import AStarPlanner
 from auv_planner.scenarios import empty_scene
 
+
 class NoSolutionPlanner:
     def plan(self, request):
         return PlanResult(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import replace
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -29,7 +29,6 @@ from auv_planner.recovery import (
     RecoveryQueryStatus,
 )
 from auv_planner.scenarios import m5_open_water_scene, remus100_vehicle
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = REPO_ROOT / "configs" / "experiments" / "m7_budget.json"
@@ -195,7 +194,7 @@ def test_path_audit_clamps_coverage_and_reports_warm_cache_per_pass() -> None:
     states = _audit_states(probe, config)
     assert all(
         later.t_s - earlier.t_s <= 1.0 + 1e-12
-        for earlier, later in zip(states, states[1:])
+        for earlier, later in zip(states, states[1:], strict=False)
     )
     rows = _audit_full_cached(probe, P0_NOMINAL, states, config)
     cold, warm = rows

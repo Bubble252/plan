@@ -1,24 +1,24 @@
 from __future__ import annotations
 
-from collections import Counter
-from dataclasses import asdict, dataclass
 import csv
 import json
+from collections import Counter
+from collections.abc import Sequence
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from time import perf_counter
-from typing import Any, Sequence
+from typing import Any
 
 import numpy as np
 
-from ..contracts import PlanResult, ScenarioConfig
+from ..contracts import PlanResult
 from ..evaluation.runner import EvaluationRecord, run_scenario
 from ..planners.astar import AStarPlanner
 from ..planners.recoverable import RecoverablePlanner, RecoverablePlannerConfig
 from ..planners.rrt_star import RRTStarPlanner
-from ..recovery import FaultProfile, RecoveryQueryStatus, fault_profile_by_name
+from ..recovery import FaultProfile, fault_profile_by_name
 from .m7_1 import M71CaseSpec, M71Config, PathAudit, audit_trajectory, m71_case_specs
 from .m7_budget import hardware_manifest
-
 
 AGGREGATE_VARIANTS = ("astar", "rrt_star", "candidate_on", "candidate_off")
 

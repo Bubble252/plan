@@ -16,7 +16,6 @@ from .contracts import (
     SimulationSnapshot,
     State,
     Trajectory,
-    WorldSnapshot,
 )
 
 

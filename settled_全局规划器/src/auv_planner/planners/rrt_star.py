@@ -221,6 +221,7 @@ class RRTStarPlanner:
 
         plan_id = f"{request.request_id}:rrt_star"
         if goal_candidates:
+            last_failure_reason: str | None = None
             goal_indices = sorted(
                 {index for _, index in goal_candidates},
                 key=lambda index: (
@@ -260,11 +261,12 @@ class RRTStarPlanner:
                             "seed": request.seed,
                         },
                     )
-            last_sweep = finalized.sweep
+                last_failure_reason = finalized.sweep.failure_reason
+            assert last_failure_reason is not None
             return self._failure(
                 request,
                 PlanStatus.INFEASIBLE,
-                f"postprocess_{last_sweep.failure_reason}",
+                f"postprocess_{last_failure_reason}",
                 started,
                 nodes=len(positions),
                 iterations=iterations,

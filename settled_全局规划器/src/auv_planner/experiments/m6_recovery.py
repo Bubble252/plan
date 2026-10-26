@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from collections import Counter
-from dataclasses import asdict, dataclass, replace
 import csv
 import json
+from collections import Counter
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -12,10 +12,10 @@ import numpy as np
 from ..contracts import Obstacle, ObstacleMap, ScenarioConfig, State, UniformCurrent, WorldSnapshot
 from ..current import DepthShearCurrent
 from ..recovery import (
-    ClearanceModel,
-    ConstraintMode,
     DEFAULT_DIAGNOSIS_DELAYS_S,
     DEFAULT_FAULTS,
+    ClearanceModel,
+    ConstraintMode,
     FaultCheck,
     ManeuverCheck,
     RecoverabilityChecker,

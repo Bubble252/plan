@@ -21,7 +21,7 @@ from ..contracts import (
 from ..interfaces import GlobalPlanner
 from ..metrics import compute_path_metrics
 
-CSV_FIELDS = (
+CSV_FIELDS: tuple[str, ...] = (
     "scenario",
     "planner",
     "seed",

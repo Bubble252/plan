@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
@@ -225,3 +227,53 @@ def test_rrt_star_timeout_has_explicit_reason() -> None:
 
     assert result.status is PlanStatus.TIMEOUT
     assert result.reason == "timeout"
+
+
+def test_rrt_star_postprocess_failure_has_explicit_reason(monkeypatch: pytest.MonkeyPatch) -> None:
+    request = make_request(ObstacleMap(bounds_ned_m=make_bounds(5.0), obstacles=()))
+    unsafe_finalize = SimpleNamespace(
+        trajectory=None,
+        path_length_m=0.0,
+        sweep=SimpleNamespace(is_safe=False, failure_reason="unit_unsafe"),
+    )
+    monkeypatch.setattr(
+        "auv_planner.planners.rrt_star.finalize_path",
+        lambda *args, **kwargs: unsafe_finalize,
+    )
+    planner = RRTStarPlanner(
+        step_size_m=6.0,
+        max_iterations=1,
+        timeout_s=1.0,
+        goal_bias=1.0,
+    )
+
+    result = planner.plan(request)
+
+    assert result.status is PlanStatus.INFEASIBLE
+    assert result.reason == "postprocess_unit_unsafe"
+
+
+def test_rrt_star_without_goal_candidate_reports_no_solution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = make_request(ObstacleMap(bounds_ned_m=make_bounds(5.0), obstacles=()))
+    unsafe_finalize = SimpleNamespace(
+        trajectory=None,
+        path_length_m=0.0,
+        sweep=SimpleNamespace(is_safe=False, failure_reason="unit_unsafe"),
+    )
+    monkeypatch.setattr(
+        "auv_planner.planners.rrt_star.finalize_path",
+        lambda *args, **kwargs: unsafe_finalize,
+    )
+    planner = RRTStarPlanner(
+        step_size_m=0.5,
+        max_iterations=1,
+        timeout_s=1.0,
+        goal_bias=1.0,
+    )
+
+    result = planner.plan(request)
+
+    assert result.status is PlanStatus.INFEASIBLE
+    assert result.reason == "no_solution"

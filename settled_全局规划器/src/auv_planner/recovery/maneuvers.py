@@ -11,7 +11,6 @@ from ..geometry import hull_clearance_details, hull_from_vehicle, point_clearanc
 from .models import (
     ClearanceModel,
     ConstraintMode,
-    FaultKind,
     FaultSpec,
     ManeuverCandidate,
     ManeuverKind,

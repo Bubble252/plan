@@ -8,7 +8,14 @@ from typing import Any
 
 import numpy as np
 
-from ..contracts import FloatArray, RecoveryCertificate, State, Trajectory, VehicleSpec, WorldSnapshot
+from ..contracts import (
+    FloatArray,
+    RecoveryCertificate,
+    State,
+    Trajectory,
+    VehicleSpec,
+    WorldSnapshot,
+)
 from ..geometry import (
     hull_clearance_details,
     hull_from_vehicle,
@@ -17,10 +24,10 @@ from ..geometry import (
 )
 from .maneuvers import build_maneuvers, coast_trajectory
 from .models import (
-    ClearanceModel,
-    ConstraintMode,
     DEFAULT_DIAGNOSIS_DELAYS_S,
     DEFAULT_FAULTS,
+    ClearanceModel,
+    ConstraintMode,
     FaultCheck,
     FaultProfile,
     FaultSpec,

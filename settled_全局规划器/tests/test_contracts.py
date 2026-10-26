@@ -15,8 +15,8 @@ from auv_planner.contracts import (
     RecoveryCertificate,
     Reference,
     Remus100ActuatorCommand,
-    SimulationSnapshot,
     ScenarioConfig,
+    SimulationSnapshot,
     State,
     TaskSpec,
     Trajectory,
@@ -24,7 +24,13 @@ from auv_planner.contracts import (
     VehicleSpec,
     WorldSnapshot,
 )
-from auv_planner.interfaces import GlobalPlanner, LocalPlanner, SafetyFilter, SimulatorBackend, TrackingController
+from auv_planner.interfaces import (
+    GlobalPlanner,
+    LocalPlanner,
+    SafetyFilter,
+    SimulatorBackend,
+    TrackingController,
+)
 from auv_planner.noop import NoLocalPlanner, NoSafetyFilter
 from auv_planner.planners.straight_line import StraightLinePlanner
 

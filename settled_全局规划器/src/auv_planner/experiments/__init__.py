@@ -9,15 +9,6 @@ from .m6_recovery import (
     run_m6_recovery,
     write_m6_config_manifest,
 )
-from .m7_budget import (
-    M7Probe,
-    hardware_manifest,
-    m7_audit_states,
-    m7_budget_manifest,
-    m7_probes,
-    run_m7_budget,
-    write_m7_budget_manifest,
-)
 from .m7_1 import (
     M71CaseResult,
     M71CaseSpec,
@@ -38,6 +29,15 @@ from .m7_2 import (
     M72Run,
     m72_case_specs,
     run_m7_2,
+)
+from .m7_budget import (
+    M7Probe,
+    hardware_manifest,
+    m7_audit_states,
+    m7_budget_manifest,
+    m7_probes,
+    run_m7_budget,
+    write_m7_budget_manifest,
 )
 
 __all__ = [

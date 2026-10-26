@@ -246,7 +246,7 @@ def test_vectorized_sweep_matches_scalar_clearance_at_every_sample() -> None:
         max_rotation_step_rad=0.1,
     )
     clearances = []
-    for time_s, position, quat in zip(times, positions, quats):
+    for time_s, position, quat in zip(times, positions, quats, strict=True):
         details = hull_clearance_details(
             obstacle_map,
             State(

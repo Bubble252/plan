@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from math import atan2, hypot
 import os
-from pathlib import Path
 import select
 import subprocess
+from math import atan2, hypot
+from pathlib import Path
 from typing import Any
 
 import numpy as np

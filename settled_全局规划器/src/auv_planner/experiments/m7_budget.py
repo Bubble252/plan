@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from collections import Counter
-from contextlib import redirect_stdout
 import csv
-from dataclasses import dataclass
 import io
 import json
 import os
-from pathlib import Path
 import platform
 import subprocess
 import sys
+from collections import Counter
+from contextlib import redirect_stdout
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -22,17 +22,16 @@ from ..recovery import (
     FaultProfile,
     RecoverabilityChecker,
     RecoveryConfig,
+    RecoveryQueryMode,
     RecoveryQueryPolicy,
     RecoveryQueryResult,
     RecoveryQuerySession,
-    RecoveryQueryMode,
     RecoveryQueryStatus,
     build_maneuvers,
     prefilter_state,
 )
 from ..scenarios import m5_multi_obstacle_scene, m5_single_corner_scene
 from .m6_recovery import m6_key_nodes
-
 
 ONLINE_BUDGET_S = 10.0
 AUDIT_INTERVAL_S = 1.0
@@ -406,7 +405,7 @@ def _path_row(
 ) -> dict[str, Any]:
     valid_results = [
         (state, result)
-        for state, result in zip(states, results)
+        for state, result in zip(states, results, strict=False)
         if result.status is RecoveryQueryStatus.VALID
     ]
     planned_duration_s = float(states[-1].t_s - states[0].t_s)
@@ -447,7 +446,7 @@ def _path_row(
 
 def _certificate_coverage_s(valid_results: list[tuple[State, RecoveryQueryResult]]) -> float:
     intervals: list[tuple[float, float]] = []
-    for state, result in valid_results:
+    for _state, result in valid_results:
         if result.assessment is None:
             continue
         certificate = result.assessment.certificate

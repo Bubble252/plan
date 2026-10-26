@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
 import csv
-from dataclasses import dataclass
 import json
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from math import radians
 from pathlib import Path
 from typing import Any
@@ -32,7 +32,6 @@ from ..guidance import ThreeDAlosGuidance
 from ..interfaces import SimulatorBackend
 from ..scenarios import remus100_vehicle
 from .m4_closed_loop import m4_cases
-
 
 CommandPolicy = Callable[[State], Remus100ActuatorCommand]
 

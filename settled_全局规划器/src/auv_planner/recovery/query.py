@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
-from enum import Enum
 import hashlib
 import json
+from dataclasses import dataclass, replace
+from enum import Enum
 from time import perf_counter
 from typing import Any
 
@@ -24,7 +24,6 @@ from .models import (
     RecoveryAssessment,
     RecoveryConfig,
 )
-
 
 CHECKER_CACHE_SCHEMA = "m7-recovery-query-v2"
 

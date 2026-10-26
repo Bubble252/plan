@@ -150,7 +150,9 @@ class ThreeDAlosGuidance:
         best_distance_sq = float("inf")
         best_projection_s = 0.0
         best_projection_point = points[0].copy()
-        for index, (start, tangent, length) in enumerate(zip(points[:-1], tangents, lengths)):
+        for index, (start, tangent, length) in enumerate(
+            zip(points[:-1], tangents, lengths, strict=True)
+        ):
             along_m = float(np.clip(np.dot(position - start, tangent), 0.0, length))
             projection_point = start + along_m * tangent
             distance_sq = float(np.dot(position - projection_point, position - projection_point))
