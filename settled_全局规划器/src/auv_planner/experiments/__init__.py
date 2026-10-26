@@ -31,6 +31,15 @@ from .m7_1 import (
     run_m7_1,
     sample_trajectory_states,
 )
+from .m7_2 import (
+    AGGREGATE_VARIANTS,
+    M72Config,
+    M72ExperimentResult,
+    M72Run,
+    m72_case_specs,
+    run_m7_2,
+)
+
 __all__ = [
     "M4Case",
     "M6ConstraintVariant",
@@ -40,9 +49,13 @@ __all__ = [
     "M71CaseSpec",
     "M71Config",
     "M71ExperimentResult",
+    "M72Config",
+    "M72ExperimentResult",
+    "M72Run",
     "PathAudit",
     "RepairAttempt",
     "audit_trajectory",
+    "AGGREGATE_VARIANTS",
     "coverage_metrics",
     "dead_end_scene",
     "hardware_manifest",
@@ -54,10 +67,12 @@ __all__ = [
     "m7_audit_states",
     "m7_probes",
     "m71_case_specs",
+    "m72_case_specs",
     "run_m4_suite",
     "run_m6_recovery",
     "run_m7_budget",
     "run_m7_1",
+    "run_m7_2",
     "sample_trajectory_states",
     "write_m6_config_manifest",
     "write_m7_budget_manifest",

@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "status": "M7.2 recovery-aware candidate planner frozen configuration",
+  "seed": 0,
+  "budget_s": 10.0,
+  "profile_name": "P1_degraded",
+  "audit_interval_s": 1.0,
+  "online_budget_s": 10.0,
+  "full_workers": 8,
+  "astar_resolution_m": 0.5,
+  "rrt_step_size_m": 0.6,
+  "rrt_iterations": 2000,
+  "candidate_resolution_m": 1.0,
+  "candidate_inner_timeout_s": 6.0,
+  "candidate_checkpoint_spacing_m": 1.0,
+  "candidate_max_replans": 2,
+  "candidate_max_via_candidates": 3,
+  "candidate_block_radius_m": 1.2,
+  "candidate_via_offset_m": 1.0,
+  "candidate_max_queries": 64,
+  "variants": [
+    "astar",
+    "rrt_star",
+    "candidate_on",
+    "candidate_off"
+  ],
+  "cases": [
+    "open_water_start",
+    "sphere_start",
+    "gate_start",
+    "s_bend_start",
+    "shear_gate_start",
+    "cross_current_open_center",
+    "m5_single_corner_start",
+    "m5_multi_obstacle_start",
+    "dead_end_no_recovery"
+  ],
+  "aggregate_excludes": [
+    "dead_end_no_recovery"
+  ]
+}
