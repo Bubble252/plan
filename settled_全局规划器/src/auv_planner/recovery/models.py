@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+import hashlib
+import json
 from math import pi, radians, sin
+from typing import Any
 
 import numpy as np
 
@@ -191,6 +194,75 @@ class FaultSpec:
 
 
 @dataclass(frozen=True)
+class FaultProfile:
+    """Versioned set of fault types checked against a shared delay grid."""
+
+    name: str
+    faults: tuple[FaultSpec, ...]
+    diagnosis_delays_s: tuple[float, ...]
+    description: str = ""
+    version: int = 1
+
+    def __post_init__(self) -> None:
+        if not self.name:
+            raise ValueError("profile name must not be empty")
+        faults = tuple(self.faults)
+        delays = tuple(float(delay) for delay in self.diagnosis_delays_s)
+        if not faults:
+            raise ValueError("a fault profile requires at least one fault")
+        if not delays:
+            raise ValueError("a fault profile requires at least one diagnosis delay")
+        if any(not isinstance(fault, FaultSpec) for fault in faults):
+            raise TypeError("profile faults must be FaultSpec instances")
+        if len({fault.name for fault in faults}) != len(faults):
+            raise ValueError("fault names must be unique within a profile")
+        if any(not np.isfinite(delay) or delay < 0.0 for delay in delays):
+            raise ValueError("diagnosis delays must be finite and non-negative")
+        if len(set(delays)) != len(delays):
+            raise ValueError("diagnosis delays must be unique within a profile")
+        if not isinstance(self.version, int) or self.version < 1:
+            raise ValueError("profile version must be a positive integer")
+        object.__setattr__(self, "faults", tuple(sorted(faults, key=lambda fault: fault.name)))
+        object.__setattr__(self, "diagnosis_delays_s", tuple(sorted(delays)))
+
+    @property
+    def check_count(self) -> int:
+        return len(self.faults) * len(self.diagnosis_delays_s)
+
+    @property
+    def digest(self) -> str:
+        payload = {
+            "schema_version": 1,
+            "name": self.name,
+            "version": self.version,
+            "faults": [
+                {
+                    "name": fault.name,
+                    "kind": fault.kind.value,
+                    "effectiveness": float(fault.effectiveness).hex(),
+                    "stuck_sign": fault.stuck_sign,
+                    "residual_rate_fraction": float(fault.residual_rate_fraction).hex(),
+                }
+                for fault in self.faults
+            ],
+            "diagnosis_delays_s": [float(delay).hex() for delay in self.diagnosis_delays_s],
+        }
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+    def manifest(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "version": self.version,
+            "description": self.description,
+            "profile_digest": self.digest,
+            "check_count": self.check_count,
+            "faults": [fault.name for fault in self.faults],
+            "diagnosis_delays_s": [float(delay) for delay in self.diagnosis_delays_s],
+        }
+
+
+@dataclass(frozen=True)
 class ManeuverCandidate:
     kind: ManeuverKind
     name: str
@@ -280,6 +352,8 @@ class RecoveryAssessment:
     fault_checks: tuple[FaultCheck, ...]
     computation_time_s: float
     current_clearance_m: float
+    profile: FaultProfile | None = None
+    early_stopped: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.certificate, RecoveryCertificate):
@@ -289,6 +363,10 @@ class RecoveryAssessment:
             raise ValueError("computation_time_s must be finite and non-negative")
         if not np.isfinite(self.current_clearance_m):
             raise ValueError("current_clearance_m must be finite")
+        if not isinstance(self.early_stopped, bool):
+            raise TypeError("early_stopped must be a bool")
+        if self.early_stopped and self.certificate.valid:
+            raise ValueError("early-stopped assessments cannot issue a valid certificate")
 
     @property
     def valid(self) -> bool:
@@ -330,19 +408,55 @@ DEFAULT_FAULTS = (
     ),
 )
 
+P0_NOMINAL = FaultProfile(
+    name="P0_nominal",
+    faults=(DEFAULT_FAULTS[0],),
+    diagnosis_delays_s=(0.0,),
+    description="Nominal vehicle at zero diagnosis delay; ablation reference only.",
+)
+
+P1_DEGRADED = FaultProfile(
+    name="P1_degraded",
+    faults=DEFAULT_FAULTS[:2],
+    diagnosis_delays_s=DEFAULT_DIAGNOSIS_DELAYS_S,
+    description="Nominal plus 50% thruster effectiveness over the frozen delay grid.",
+)
+
+P2_M6_STRESS = FaultProfile(
+    name="P2_m6_stress",
+    faults=DEFAULT_FAULTS,
+    diagnosis_delays_s=DEFAULT_DIAGNOSIS_DELAYS_S,
+    description="All six M6 single-fault cases over the frozen delay grid; stress use only.",
+)
+
+DEFAULT_FAULT_PROFILES = (P0_NOMINAL, P1_DEGRADED, P2_M6_STRESS)
+
+
+def fault_profile_by_name(name: str) -> FaultProfile:
+    for profile in DEFAULT_FAULT_PROFILES:
+        if profile.name == name:
+            return profile
+    raise ValueError(f"unknown default fault profile: {name}")
+
 
 __all__ = [
     "ClearanceModel",
     "ConstraintMode",
     "DEFAULT_DIAGNOSIS_DELAYS_S",
+    "DEFAULT_FAULT_PROFILES",
     "DEFAULT_FAULTS",
+    "FaultProfile",
     "FaultCheck",
     "FaultKind",
     "FaultSpec",
     "ManeuverCandidate",
     "ManeuverCheck",
     "ManeuverKind",
+    "P0_NOMINAL",
+    "P1_DEGRADED",
+    "P2_M6_STRESS",
     "RecoveryAssessment",
     "RecoveryConfig",
     "RecoveryErrorBounds",
+    "fault_profile_by_name",
 ]

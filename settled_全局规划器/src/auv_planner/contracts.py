@@ -338,6 +338,8 @@ class RecoveryCertificate:
     valid_until_s: float | None = None
     margin_m: float | None = None
     reason: str | None = None
+    profile_name: str | None = None
+    profile_digest: str | None = None
     diagnostics: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -356,6 +358,8 @@ class RecoveryCertificate:
             raise ValueError("valid_until_s must not precede valid_from_s")
         if self.margin_m is not None and not np.isfinite(self.margin_m):
             raise ValueError("margin_m must be finite")
+        if (self.profile_name is None) != (self.profile_digest is None):
+            raise ValueError("profile_name and profile_digest must be provided together")
         object.__setattr__(self, "diagnostics", dict(self.diagnostics))
         if self.valid:
             if self.valid_from_s is None or self.valid_until_s is None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from math import ceil
 from time import perf_counter
 from typing import Any
@@ -21,6 +22,7 @@ from .models import (
     DEFAULT_DIAGNOSIS_DELAYS_S,
     DEFAULT_FAULTS,
     FaultCheck,
+    FaultProfile,
     FaultSpec,
     ManeuverCandidate,
     ManeuverCheck,
@@ -269,6 +271,45 @@ def _fault_check(
     )
 
 
+@dataclass(frozen=True)
+class _FaultTask:
+    state: State
+    world: WorldSnapshot
+    vehicle: VehicleSpec
+    fault: FaultSpec
+    diagnosis_delay_s: float
+    config: RecoveryConfig
+    required_clearance_m: float
+    safe_anchor_ned_m: FloatArray | None
+
+
+def _fault_check_worker(task: _FaultTask) -> FaultCheck:
+    return _fault_check(
+        task.state,
+        task.world,
+        task.vehicle,
+        task.fault,
+        task.diagnosis_delay_s,
+        task.config,
+        required_clearance_m=task.required_clearance_m,
+        safe_anchor_ned_m=task.safe_anchor_ned_m,
+    )
+
+
+def _run_fault_checks(
+    tasks: Sequence[_FaultTask],
+    *,
+    parallel_workers: int,
+) -> tuple[FaultCheck, ...]:
+    if parallel_workers <= 1 or len(tasks) <= 1:
+        return tuple(_fault_check_worker(task) for task in tasks)
+
+    from concurrent.futures import ProcessPoolExecutor
+
+    with ProcessPoolExecutor(max_workers=min(parallel_workers, len(tasks))) as executor:
+        return tuple(executor.map(_fault_check_worker, tasks))
+
+
 def _certificate_assumptions(config: RecoveryConfig, vehicle: VehicleSpec) -> tuple[str, ...]:
     inflation = config.error_clearance_inflation_m(vehicle)
     assumptions = [
@@ -336,9 +377,12 @@ class RecoverabilityChecker:
         vehicle: VehicleSpec,
         *,
         config: RecoveryConfig | None = None,
-        faults: Sequence[FaultSpec] = DEFAULT_FAULTS,
-        diagnosis_delays_s: Sequence[float] = DEFAULT_DIAGNOSIS_DELAYS_S,
+        profile: FaultProfile | None = None,
+        faults: Sequence[FaultSpec] | None = None,
+        diagnosis_delays_s: Sequence[float] | None = None,
         safe_anchor_ned_m: FloatArray | None = None,
+        early_stop: bool = False,
+        parallel_workers: int = 1,
     ) -> RecoveryAssessment:
         if not isinstance(state, State):
             raise TypeError("state must be a State")
@@ -346,39 +390,70 @@ class RecoverabilityChecker:
             raise TypeError("world must be a WorldSnapshot")
         if not isinstance(vehicle, VehicleSpec):
             raise TypeError("vehicle must be a VehicleSpec")
+        if not isinstance(early_stop, bool):
+            raise TypeError("early_stop must be a bool")
+        if not isinstance(parallel_workers, int) or parallel_workers < 1:
+            raise ValueError("parallel_workers must be a positive integer")
+        if early_stop and parallel_workers > 1:
+            raise ValueError("early_stop cannot be combined with parallel_workers > 1")
         active_config = RecoveryConfig() if config is None else config
         if not isinstance(active_config, RecoveryConfig):
             raise TypeError("config must be a RecoveryConfig")
-        if not faults:
+        if profile is not None:
+            if not isinstance(profile, FaultProfile):
+                raise TypeError("profile must be a FaultProfile")
+            if faults is not None or diagnosis_delays_s is not None:
+                raise ValueError("profile cannot be combined with explicit faults or diagnosis delays")
+            active_profile = profile
+        else:
+            active_profile = FaultProfile(
+                name="custom",
+                faults=tuple(DEFAULT_FAULTS if faults is None else faults),
+                diagnosis_delays_s=tuple(
+                    DEFAULT_DIAGNOSIS_DELAYS_S
+                    if diagnosis_delays_s is None
+                    else diagnosis_delays_s
+                ),
+            )
+        if not active_profile.faults:
             raise ValueError("at least one fault specification is required")
-        if not diagnosis_delays_s:
+        if not active_profile.diagnosis_delays_s:
             raise ValueError("at least one diagnosis delay is required")
-        if any(not np.isfinite(delay) or delay < 0.0 for delay in diagnosis_delays_s):
-            raise ValueError("diagnosis delays must be finite and non-negative")
         anchor = _validate_point(safe_anchor_ned_m)
         start_time = perf_counter()
         required_clearance = active_config.required_inflated_clearance_m(vehicle)
         current_clearance = _state_clearance(state, world, vehicle, active_config)
-        checks = tuple(
-            _fault_check(
-                state,
-                world,
-                vehicle,
-                fault,
-                float(delay),
-                active_config,
+        tasks = tuple(
+            _FaultTask(
+                state=state,
+                world=world,
+                vehicle=vehicle,
+                fault=fault,
+                diagnosis_delay_s=float(delay),
+                config=active_config,
                 required_clearance_m=required_clearance,
                 safe_anchor_ned_m=anchor,
             )
-            for fault in faults
-            for delay in diagnosis_delays_s
+            for fault in active_profile.faults
+            for delay in active_profile.diagnosis_delays_s
         )
+        if early_stop:
+            completed: list[FaultCheck] = []
+            for task in tasks:
+                check = _fault_check_worker(task)
+                completed.append(check)
+                if not check.safe:
+                    break
+            checks = tuple(completed)
+        else:
+            checks = _run_fault_checks(tasks, parallel_workers=parallel_workers)
+        early_stopped = len(checks) < len(tasks)
         failures = tuple(check for check in checks if not check.safe)
         diagnostic_mode = (
             active_config.clearance_model is not ClearanceModel.FULL_HULL
             or active_config.constraint_mode is not ConstraintMode.VEHICLE
         )
-        valid = not failures and not diagnostic_mode
+        valid = not failures and not diagnostic_mode and not early_stopped
         reason: str | None = None
         if failures:
             primary = max(
@@ -411,6 +486,17 @@ class RecoverabilityChecker:
             "constraint_mode": active_config.constraint_mode.value,
             "clearance_model": active_config.clearance_model.value,
             "diagnostic_only": diagnostic_mode,
+            "profile_name": active_profile.name,
+            "profile_digest": active_profile.digest,
+            "profile_version": active_profile.version,
+            "profile_check_count": active_profile.check_count,
+            "evaluated_check_count": len(checks),
+            "early_stopped": early_stopped,
+            "evaluation_mode": (
+                "online_fast"
+                if early_stop
+                else ("full_parallel" if parallel_workers > 1 else "full_sequential")
+            ),
             "fault_checks": [_fault_summary(check) for check in checks],
         }
         certificate = RecoveryCertificate(
@@ -422,6 +508,8 @@ class RecoverabilityChecker:
             valid_until_s=valid_until,
             margin_m=margin,
             reason=reason,
+            profile_name=active_profile.name,
+            profile_digest=active_profile.digest,
             diagnostics=diagnostics,
         )
         computation_time = perf_counter() - start_time
@@ -430,6 +518,8 @@ class RecoverabilityChecker:
             fault_checks=checks,
             computation_time_s=float(computation_time),
             current_clearance_m=float(current_clearance),
+            profile=active_profile,
+            early_stopped=early_stopped,
         )
 
 

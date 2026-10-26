@@ -39,6 +39,18 @@ def _quaternion(value: object) -> FloatArray:
     return quat / norm
 
 
+def _quaternions(value: object, name: str = "quaternions") -> FloatArray:
+    quats = np.asarray(value, dtype=np.float64)
+    if quats.ndim != 2 or quats.shape[1] != 4 or quats.shape[0] < 1:
+        raise ValueError(f"{name} must have shape (N, 4) with N >= 1")
+    if not np.all(np.isfinite(quats)):
+        raise ValueError(f"{name} must contain only finite values")
+    norms = np.linalg.norm(quats, axis=1)
+    if np.any(norms <= 0.0):
+        raise ValueError(f"{name} must not contain zero quaternions")
+    return quats / norms[:, None]
+
+
 def _slerp(quat_a: FloatArray, quat_b: FloatArray, fraction: float) -> FloatArray:
     qa = _quaternion(quat_a)
     qb = _quaternion(quat_b)
@@ -55,6 +67,40 @@ def _slerp(quat_a: FloatArray, quat_b: FloatArray, fraction: float) -> FloatArra
     weight_a = float(np.sin((1.0 - fraction) * theta_0) / sin_theta_0)
     weight_b = float(np.sin(fraction * theta_0) / sin_theta_0)
     return weight_a * qa + weight_b * qb
+
+
+def _slerp_many(
+    quat_a: FloatArray,
+    quat_b: FloatArray,
+    fractions: FloatArray,
+) -> FloatArray:
+    qa = _quaternions(quat_a, "quat_a")
+    qb = _quaternions(quat_b, "quat_b")
+    fraction = np.asarray(fractions, dtype=np.float64)
+    if fraction.shape != (qa.shape[0],):
+        raise ValueError("fractions must have shape (N,) matching quat_a")
+    if not np.all(np.isfinite(fraction)):
+        raise ValueError("fractions must contain only finite values")
+
+    dots = np.sum(qa * qb, axis=1)
+    qb = np.where((dots < 0.0)[:, None], -qb, qb)
+    dots = np.clip(np.abs(dots), -1.0, 1.0)
+
+    linear = qa + fraction[:, None] * (qb - qa)
+    linear_norms = np.linalg.norm(linear, axis=1)
+    linear = linear / np.maximum(linear_norms[:, None], 1e-15)
+
+    theta = np.arccos(dots)
+    sin_theta = np.sin(theta)
+    safe_sin = np.where(np.abs(sin_theta) < 1e-12, 1.0, sin_theta)
+    weight_a = np.sin((1.0 - fraction) * theta) / safe_sin
+    weight_b = np.sin(fraction * theta) / safe_sin
+    spherical = weight_a[:, None] * qa + weight_b[:, None] * qb
+    spherical_norms = np.linalg.norm(spherical, axis=1)
+    spherical = spherical / np.maximum(spherical_norms[:, None], 1e-15)
+
+    result = np.where((dots > 0.9995)[:, None], linear, spherical)
+    return result / np.maximum(np.linalg.norm(result, axis=1)[:, None], 1e-15)
 
 
 @dataclass(frozen=True)
@@ -127,6 +173,32 @@ def hull_sphere_centers_from_pose(
     return rotated_hull_offsets(hull, quat_xyzw) + position.reshape(1, 3)
 
 
+def hull_sphere_centers_from_poses(
+    positions_ned_m: FloatArray,
+    quats_xyzw: FloatArray,
+    hull: HullSpec,
+) -> FloatArray:
+    positions = _points(positions_ned_m, "positions_ned_m")
+    quats = _quaternions(quats_xyzw, "quats_xyzw")
+    if positions.shape[0] != quats.shape[0]:
+        raise ValueError("positions_ned_m and quats_xyzw must have the same length")
+
+    x, y, z, w = quats.T
+    rotation = np.empty((quats.shape[0], 3, 3), dtype=np.float64)
+    rotation[:, 0, 0] = 1.0 - 2.0 * (y * y + z * z)
+    rotation[:, 0, 1] = 2.0 * (x * y - z * w)
+    rotation[:, 0, 2] = 2.0 * (x * z + y * w)
+    rotation[:, 1, 0] = 2.0 * (x * y + z * w)
+    rotation[:, 1, 1] = 1.0 - 2.0 * (x * x + z * z)
+    rotation[:, 1, 2] = 2.0 * (y * z - x * w)
+    rotation[:, 2, 0] = 2.0 * (x * z - y * w)
+    rotation[:, 2, 1] = 2.0 * (y * z + x * w)
+    rotation[:, 2, 2] = 1.0 - 2.0 * (x * x + y * y)
+
+    centers = np.einsum("nij,sj->nsi", rotation, hull.offsets_body_m)
+    return centers + positions[:, None, :]
+
+
 def obstacle_signed_distance_array(points_ned_m: FloatArray, obstacle: Obstacle) -> FloatArray:
     if not isinstance(obstacle, Obstacle):
         raise TypeError("obstacle must be an Obstacle")
@@ -189,24 +261,51 @@ def _clearance_from_centers(
     radius_m: float,
     obstacle_map: ObstacleMap,
 ) -> ClearanceDetails:
-    obstacle_clearance = float("inf")
-    for obstacle in obstacle_map.obstacles:
-        obstacle_clearance = min(
-            obstacle_clearance,
-            float(np.min(obstacle_signed_distance_array(centers_ned_m, obstacle))),
-        )
-    obstacle_clearance -= radius_m
-    boundary_clearance = float(
-        np.min(_bounds_signed_distance_array(centers_ned_m, obstacle_map.bounds_ned_m))
-    ) - radius_m
-    clearance = min(obstacle_clearance, boundary_clearance)
-    return ClearanceDetails(
-        clearance_m=float(clearance),
-        obstacle_clearance_m=float(obstacle_clearance),
-        boundary_clearance_m=float(boundary_clearance),
-        collision=bool(obstacle_clearance < 0.0),
-        out_of_bounds=bool(boundary_clearance < 0.0),
+    centers = _points(centers_ned_m, "centers_ned_m")
+    clearance, obstacle_clearance, boundary_clearance = _clearance_from_centers_many(
+        centers.reshape(1, centers.shape[0], 3),
+        radius_m,
+        obstacle_map,
     )
+    obstacle_clearance_value = float(obstacle_clearance[0])
+    boundary_clearance_value = float(boundary_clearance[0])
+    clearance_value = float(clearance[0])
+    return ClearanceDetails(
+        clearance_m=clearance_value,
+        obstacle_clearance_m=obstacle_clearance_value,
+        boundary_clearance_m=boundary_clearance_value,
+        collision=bool(obstacle_clearance_value < 0.0),
+        out_of_bounds=bool(boundary_clearance_value < 0.0),
+    )
+
+
+def _clearance_from_centers_many(
+    centers_ned_m: FloatArray,
+    radius_m: float,
+    obstacle_map: ObstacleMap,
+) -> tuple[FloatArray, FloatArray, FloatArray]:
+    centers = np.asarray(centers_ned_m, dtype=np.float64)
+    if centers.ndim != 3 or centers.shape[0] < 1 or centers.shape[1] < 1 or centers.shape[2] != 3:
+        raise ValueError("centers_ned_m must have shape (N, S, 3)")
+    if not np.isfinite(radius_m) or radius_m < 0.0:
+        raise ValueError("radius_m must be finite and non-negative")
+    if not np.all(np.isfinite(centers)):
+        raise ValueError("centers_ned_m must contain only finite values")
+
+    sample_count = centers.shape[0]
+    flat = centers.reshape(-1, 3)
+    obstacle_clearance = np.full(sample_count, float("inf"), dtype=np.float64)
+    for obstacle in obstacle_map.obstacles:
+        distances = obstacle_signed_distance_array(flat, obstacle).reshape(sample_count, -1)
+        obstacle_clearance = np.minimum(obstacle_clearance, np.min(distances, axis=1))
+    obstacle_clearance -= radius_m
+
+    boundary_clearance = np.min(
+        _bounds_signed_distance_array(flat, obstacle_map.bounds_ned_m).reshape(sample_count, -1),
+        axis=1,
+    ) - radius_m
+    clearance = np.minimum(obstacle_clearance, boundary_clearance)
+    return clearance, obstacle_clearance, boundary_clearance
 
 
 def hull_clearance_details_from_offsets(
@@ -287,6 +386,51 @@ class SweepResult:
         return not self.collision and not self.out_of_bounds
 
 
+def _sample_trajectory_poses(
+    trajectory: Trajectory,
+    *,
+    max_translation_step_m: float,
+    max_rotation_step_rad: float,
+) -> tuple[FloatArray, FloatArray, FloatArray]:
+    times: list[FloatArray] = [np.array([float(trajectory.t_s[0])], dtype=np.float64)]
+    positions: list[FloatArray] = [trajectory.position_ned_m[0].reshape(1, 3)]
+    quats: list[FloatArray] = [trajectory.quat_xyzw[0].reshape(1, 4)]
+
+    for index in range(trajectory.t_s.shape[0] - 1):
+        position_a = trajectory.position_ned_m[index]
+        position_b = trajectory.position_ned_m[index + 1]
+        quat_a = trajectory.quat_xyzw[index]
+        quat_b = trajectory.quat_xyzw[index + 1]
+        translation = float(np.linalg.norm(position_b - position_a))
+        rotation = float(
+            2.0 * np.arccos(np.clip(abs(float(np.dot(quat_a, quat_b))), -1.0, 1.0))
+        )
+        steps = max(
+            1,
+            int(ceil(translation / max_translation_step_m)),
+            int(ceil(rotation / max_rotation_step_rad)),
+        )
+        fractions = np.arange(1, steps + 1, dtype=np.float64) / float(steps)
+        times.append(
+            trajectory.t_s[index]
+            + fractions * (trajectory.t_s[index + 1] - trajectory.t_s[index])
+        )
+        positions.append(position_a + fractions[:, None] * (position_b - position_a))
+        quats.append(
+            _slerp_many(
+                np.repeat(quat_a.reshape(1, 4), steps, axis=0),
+                np.repeat(quat_b.reshape(1, 4), steps, axis=0),
+                fractions,
+            )
+        )
+
+    return (
+        np.concatenate(times),
+        np.vstack(positions),
+        np.vstack(quats),
+    )
+
+
 def trajectory_sweep(
     trajectory: Trajectory,
     obstacle_map: ObstacleMap,
@@ -306,54 +450,20 @@ def trajectory_sweep(
         raise ValueError("max_rotation_step_rad must be finite and positive")
 
     hull = hull_from_vehicle(vehicle, sphere_count)
-    best_clearance = float("inf")
-    best_time = float(trajectory.t_s[0])
-    best_position = trajectory.position_ned_m[0].copy()
-    best_index = 0
-    collision = False
-    out_of_bounds = False
-    sampled_poses = 0
-
-    def inspect(time_s: float, position: FloatArray, quat: FloatArray) -> None:
-        nonlocal best_clearance, best_time, best_position, best_index
-        nonlocal collision, out_of_bounds, sampled_poses
-        state = State(
-            t_s=float(time_s),
-            position_ned_m=position,
-            quat_xyzw=quat,
-            linear_velocity_body_mps=np.zeros(3),
-            angular_velocity_body_rps=np.zeros(3),
-        )
-        details = hull_clearance_details(obstacle_map, state, hull)
-        collision = collision or details.collision
-        out_of_bounds = out_of_bounds or details.out_of_bounds
-        if details.clearance_m < best_clearance:
-            best_clearance = details.clearance_m
-            best_time = float(time_s)
-            best_position = np.asarray(position, dtype=np.float64).copy()
-            best_index = sampled_poses
-        sampled_poses += 1
-
-    inspect(trajectory.t_s[0], trajectory.position_ned_m[0], trajectory.quat_xyzw[0])
-    for index in range(trajectory.t_s.shape[0] - 1):
-        position_a = trajectory.position_ned_m[index]
-        position_b = trajectory.position_ned_m[index + 1]
-        quat_a = trajectory.quat_xyzw[index]
-        quat_b = trajectory.quat_xyzw[index + 1]
-        translation = float(np.linalg.norm(position_b - position_a))
-        rotation = float(2.0 * np.arccos(np.clip(abs(float(np.dot(quat_a, quat_b))), -1.0, 1.0)))
-        steps = max(
-            1,
-            int(ceil(translation / max_translation_step_m)),
-            int(ceil(rotation / max_rotation_step_rad)),
-        )
-        for step in range(1, steps + 1):
-            fraction = step / steps
-            position = position_a + fraction * (position_b - position_a)
-            quat = _slerp(quat_a, quat_b, fraction)
-            time_s = trajectory.t_s[index] + fraction * (trajectory.t_s[index + 1] - trajectory.t_s[index])
-            inspect(time_s, position, quat)
-
+    times, positions, quats = _sample_trajectory_poses(
+        trajectory,
+        max_translation_step_m=max_translation_step_m,
+        max_rotation_step_rad=max_rotation_step_rad,
+    )
+    centers = hull_sphere_centers_from_poses(positions, quats, hull)
+    clearance, obstacle_clearance, boundary_clearance = _clearance_from_centers_many(
+        centers,
+        hull.sphere_radius_m,
+        obstacle_map,
+    )
+    best_index = int(np.argmin(clearance))
+    collision = bool(np.any(obstacle_clearance < 0.0))
+    out_of_bounds = bool(np.any(boundary_clearance < 0.0))
     reasons: list[str] = []
     if collision:
         reasons.append("collision")
@@ -362,11 +472,11 @@ def trajectory_sweep(
     return SweepResult(
         collision=collision,
         out_of_bounds=out_of_bounds,
-        min_clearance_m=float(best_clearance),
-        min_clearance_time_s=best_time,
-        min_clearance_position_ned_m=best_position,
+        min_clearance_m=float(clearance[best_index]),
+        min_clearance_time_s=float(times[best_index]),
+        min_clearance_position_ned_m=positions[best_index].copy(),
         min_clearance_sample_index=best_index,
-        sampled_poses=sampled_poses,
+        sampled_poses=int(times.shape[0]),
         failure_reason=",".join(reasons) if reasons else None,
     )
 

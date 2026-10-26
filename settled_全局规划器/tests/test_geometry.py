@@ -6,6 +6,7 @@ import pytest
 from auv_planner.contracts import Obstacle, ObstacleMap, State, Trajectory, VehicleSpec
 from auv_planner.geometry import (
     OccupancyGrid,
+    _sample_trajectory_poses,
     hull_clearance,
     hull_clearance_details,
     hull_from_vehicle,
@@ -213,6 +214,55 @@ def test_sweep_detects_obstacle_between_safe_endpoints() -> None:
     assert result.min_clearance_m < 0.0
     assert result.sampled_poses > 2
     assert result.failure_reason == "collision"
+
+
+def test_vectorized_sweep_matches_scalar_clearance_at_every_sample() -> None:
+    obstacles = (
+        Obstacle("sphere", "sphere", np.array([0.2, 0.15, -0.1]), radius_m=0.35),
+        Obstacle(
+            "wall",
+            "box",
+            np.array([-0.4, -0.8, 0.0]),
+            half_extents_m=np.array([2.0, 0.1, 1.0]),
+        ),
+    )
+    obstacle_map = make_map(obstacles, half_size_m=4.0)
+    path = make_trajectory(
+        np.array([[-2.0, 0.0, 0.0], [0.5, 0.4, 0.1], [2.0, -0.2, 0.0]]),
+        quats=np.array(
+            [
+                [0.0, 0.0, 0.0, 1.0],
+                [0.0, 0.0, np.sin(0.2), np.cos(0.2)],
+                [0.0, 0.0, np.sin(0.25), np.cos(0.25)],
+            ]
+        ),
+        t_s=np.array([0.0, 1.0, 2.0]),
+    )
+    vehicle = make_vehicle()
+    sweep = trajectory_sweep(path, obstacle_map, vehicle)
+    times, positions, quats = _sample_trajectory_poses(
+        path,
+        max_translation_step_m=0.1,
+        max_rotation_step_rad=0.1,
+    )
+    clearances = []
+    for time_s, position, quat in zip(times, positions, quats):
+        details = hull_clearance_details(
+            obstacle_map,
+            State(
+                t_s=float(time_s),
+                position_ned_m=position,
+                quat_xyzw=quat,
+                linear_velocity_body_mps=np.zeros(3),
+                angular_velocity_body_rps=np.zeros(3),
+            ),
+            hull_from_vehicle(vehicle),
+        )
+        clearances.append(details.clearance_m)
+
+    assert sweep.sampled_poses == len(clearances)
+    assert sweep.min_clearance_m == pytest.approx(min(clearances), abs=1e-12)
+    assert sweep.min_clearance_time_s == pytest.approx(float(times[clearances.index(min(clearances))]))
 
 
 def test_sweep_detects_rotation_collision() -> None:

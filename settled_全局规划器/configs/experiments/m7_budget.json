@@ -1,0 +1,219 @@
+{
+  "audit_interval_s": 1.0,
+  "model": {
+    "certificate_validity_s": 1.0,
+    "clearance_model": "full_hull",
+    "constraint_mode": "vehicle",
+    "error_bounds": {
+      "current_mps": 0.005,
+      "heading_rad": 0.01,
+      "position_m": 0.02
+    },
+    "horizon_s": 10.0,
+    "required_clearance_m": 0.25,
+    "sample_time_s": 0.1
+  },
+  "online_budget_s": 10.0,
+  "probes": [
+    {
+      "include_in_aggregate": true,
+      "name": "open_water_start",
+      "role": "m6_key_node",
+      "scenario_name": "m5_open_water",
+      "state_linear_velocity_body_mps": [
+        1.5,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        -6.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "include_in_aggregate": true,
+      "name": "sphere_start",
+      "role": "m6_key_node",
+      "scenario_name": "m5_sphere_detour",
+      "state_linear_velocity_body_mps": [
+        1.5,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        -6.0,
+        -0.5,
+        0.5
+      ]
+    },
+    {
+      "include_in_aggregate": true,
+      "name": "gate_start",
+      "role": "m6_key_node",
+      "scenario_name": "m5_cylinder_gate",
+      "state_linear_velocity_body_mps": [
+        1.5,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        -6.0,
+        -1.0,
+        0.0
+      ]
+    },
+    {
+      "include_in_aggregate": true,
+      "name": "s_bend_start",
+      "role": "m6_key_node",
+      "scenario_name": "m5_s_bend_corridor",
+      "state_linear_velocity_body_mps": [
+        1.5,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        -6.0,
+        -0.5,
+        0.0
+      ]
+    },
+    {
+      "include_in_aggregate": true,
+      "name": "shear_gate_start",
+      "role": "m6_key_node",
+      "scenario_name": "m5_depth_shear_gate",
+      "state_linear_velocity_body_mps": [
+        1.5,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        -6.0,
+        -1.0,
+        0.0
+      ]
+    },
+    {
+      "include_in_aggregate": true,
+      "name": "cross_current_open_center",
+      "role": "m6_key_node",
+      "scenario_name": "m6_open_water_cross_current_0.30",
+      "state_linear_velocity_body_mps": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        -2.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "include_in_aggregate": false,
+      "name": "dead_end_no_recovery",
+      "role": "certificate_rejection_unit_test",
+      "scenario_name": "m6_dead_end",
+      "state_linear_velocity_body_mps": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "include_in_aggregate": true,
+      "name": "m5_single_corner_start",
+      "role": "m5_scene_start",
+      "scenario_name": "m5_single_corner",
+      "state_linear_velocity_body_mps": [
+        1.5,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        -5.0,
+        -1.0,
+        0.0
+      ]
+    },
+    {
+      "include_in_aggregate": true,
+      "name": "m5_multi_obstacle_start",
+      "role": "m5_scene_start",
+      "scenario_name": "m5_multi_obstacle",
+      "state_linear_velocity_body_mps": [
+        1.5,
+        0.0,
+        0.0
+      ],
+      "state_position_ned_m": [
+        -6.0,
+        -1.0,
+        0.0
+      ]
+    }
+  ],
+  "profiles": [
+    {
+      "check_count": 1,
+      "description": "Nominal vehicle at zero diagnosis delay; ablation reference only.",
+      "diagnosis_delays_s": [
+        0.0
+      ],
+      "faults": [
+        "nominal"
+      ],
+      "name": "P0_nominal",
+      "profile_digest": "e054582a46cc10288b76f0e23670acab9b5249443c5464733d4ebe3bbe9ff230",
+      "version": 1
+    },
+    {
+      "check_count": 8,
+      "description": "Nominal plus 50% thruster effectiveness over the frozen delay grid.",
+      "diagnosis_delays_s": [
+        0.0,
+        1.0,
+        3.0,
+        5.0
+      ],
+      "faults": [
+        "nominal",
+        "thruster_efficiency_loss_0.50"
+      ],
+      "name": "P1_degraded",
+      "profile_digest": "2af765f24b7318ebc6d049b2903ed8a378e6f11523e5c95e5eaf8abe70032142",
+      "version": 1
+    },
+    {
+      "check_count": 24,
+      "description": "All six M6 single-fault cases over the frozen delay grid; stress use only.",
+      "diagnosis_delays_s": [
+        0.0,
+        1.0,
+        3.0,
+        5.0
+      ],
+      "faults": [
+        "nominal",
+        "pitch_fin_stuck_negative",
+        "pitch_fin_stuck_positive",
+        "thruster_efficiency_loss_0.50",
+        "yaw_fin_stuck_negative",
+        "yaw_fin_stuck_positive"
+      ],
+      "name": "P2_m6_stress",
+      "profile_digest": "cd3087db65bb43da6ded6f27a2cd04f6b2eca20e39e5378d05a9f4853e114589",
+      "version": 1
+    }
+  ],
+  "schema_version": 1,
+  "single_full_repeats": 3,
+  "status": "M7.0 cost-profiling configuration; no candidate planner"
+}
