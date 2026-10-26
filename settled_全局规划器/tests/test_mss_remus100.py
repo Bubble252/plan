@@ -61,7 +61,9 @@ def _scenario(
             obstacle_map=ObstacleMap(
                 bounds_ned_m=np.array([[-100.0, 100.0], [-100.0, 100.0], [-100.0, 100.0]])
             ),
-            current_field=UniformCurrent(velocity_ned_mps=np.zeros(3)) if current is None else current,
+            current_field=UniformCurrent(velocity_ned_mps=np.zeros(3))
+            if current is None
+            else current,
         ),
         vehicle=remus100_vehicle(),
         start=_state() if state is None else state,
@@ -111,12 +113,8 @@ def test_mss_derivative_does_not_advance_and_matches_axis_signs() -> None:
     scenario = _scenario()
     try:
         initial = backend.reset(scenario, seed=0)
-        rudder_derivative = backend.derivative_nu_dot(
-            _command(rudder_rad=radians(10.0))
-        )
-        stern_derivative = backend.derivative_nu_dot(
-            _command(stern_plane_rad=radians(10.0))
-        )
+        rudder_derivative = backend.derivative_nu_dot(_command(rudder_rad=radians(10.0)))
+        stern_derivative = backend.derivative_nu_dot(_command(stern_plane_rad=radians(10.0)))
         snapshot = backend._snapshot()  # noqa: SLF001 - state must not change
         assert snapshot.state.t_s == pytest.approx(initial.state.t_s)
         assert snapshot.state.linear_velocity_body_mps == pytest.approx(

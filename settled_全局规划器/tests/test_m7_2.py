@@ -121,13 +121,16 @@ def test_checkpoint_exactly_at_certificate_expiry_is_requeried(
     planner = _planner(recovery_mode=True)
     states = (
         (0.0, request.start),
-        (1.0, State(
-            t_s=1.0,
-            position_ned_m=request.start.position_ned_m + np.array([1.0, 0.0, 0.0]),
-            quat_xyzw=request.start.quat_xyzw,
-            linear_velocity_body_mps=request.start.linear_velocity_body_mps,
-            angular_velocity_body_rps=request.start.angular_velocity_body_rps,
-        )),
+        (
+            1.0,
+            State(
+                t_s=1.0,
+                position_ned_m=request.start.position_ned_m + np.array([1.0, 0.0, 0.0]),
+                quat_xyzw=request.start.quat_xyzw,
+                linear_velocity_body_mps=request.start.linear_velocity_body_mps,
+                angular_velocity_body_rps=request.start.angular_velocity_body_rps,
+            ),
+        ),
     )
     queries: list[float] = []
 

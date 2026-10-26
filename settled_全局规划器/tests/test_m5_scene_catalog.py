@@ -45,6 +45,11 @@ def test_m5_scenes_have_start_and_goal_inside_bounds_and_clear_of_obstacles() ->
 def test_m5_scene_metadata_records_currents_and_obstacles() -> None:
     scenes = {spec.scenario.name: spec for spec in m5_scene_catalog()}
     assert not scenes["m5_open_water"].scenario.world.obstacle_map.obstacles
-    assert scenes["m5_cross_current_sphere"].scenario.world.current_field.sample(np.zeros(3), 0.0)[1] > 0.0
-    assert scenes["m5_depth_shear_gate"].generation_rule.startswith("gate geometry with horizontal current")
+    assert (
+        scenes["m5_cross_current_sphere"].scenario.world.current_field.sample(np.zeros(3), 0.0)[1]
+        > 0.0
+    )
+    assert scenes["m5_depth_shear_gate"].generation_rule.startswith(
+        "gate geometry with horizontal current"
+    )
     assert len(scenes["m5_multi_obstacle"].scenario.world.obstacle_map.obstacles) == 3

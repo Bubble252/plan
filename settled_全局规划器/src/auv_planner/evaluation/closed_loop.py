@@ -23,16 +23,13 @@ from ..interfaces import Guidance
 
 
 class Remus100Controller(Protocol):
-    def control(self, state: State, reference: Reference) -> Remus100ActuatorCommand:
-        ...
+    def control(self, state: State, reference: Reference) -> Remus100ActuatorCommand: ...
 
 
 class Remus100Backend(Protocol):
-    def reset(self, scenario: ScenarioConfig, seed: int) -> SimulationSnapshot:
-        ...
+    def reset(self, scenario: ScenarioConfig, seed: int) -> SimulationSnapshot: ...
 
-    def step(self, command: Remus100ActuatorCommand) -> SimulationSnapshot:
-        ...
+    def step(self, command: Remus100ActuatorCommand) -> SimulationSnapshot: ...
 
 
 @dataclass(frozen=True)
@@ -93,10 +90,7 @@ class ClosedLoopMetrics:
     failure_reason: str | None
 
     def summary_dict(self) -> dict[str, object]:
-        return {
-            field_name: getattr(self, field_name)
-            for field_name in self.__dataclass_fields__
-        }
+        return {field_name: getattr(self, field_name) for field_name in self.__dataclass_fields__}
 
 
 @dataclass(frozen=True)
@@ -253,9 +247,7 @@ def write_closed_loop_log(result: ClosedLoopResult, path: Path | str) -> Path:
     return output_path
 
 
-def write_closed_loop_summary_csv(
-    results: Iterable[ClosedLoopResult], path: Path | str
-) -> Path:
+def write_closed_loop_summary_csv(results: Iterable[ClosedLoopResult], path: Path | str) -> Path:
     rows = list(results)
     if not rows:
         raise ValueError("results must not be empty")
@@ -286,12 +278,16 @@ def _compute_metrics(
     times = np.array([sample.t_s for sample in samples], dtype=np.float64)
     commands = [sample.command for sample in samples]
     rudder = np.array([command.rudder_angle_rad for command in commands], dtype=np.float64)
-    stern_plane = np.array([command.stern_plane_angle_rad for command in commands], dtype=np.float64)
+    stern_plane = np.array(
+        [command.stern_plane_angle_rad for command in commands], dtype=np.float64
+    )
     rpm = np.array([command.propeller_rpm for command in commands], dtype=np.float64)
     reference_speed = np.array(
         [sample.reference.linear_velocity_body_mps[0] for sample in samples], dtype=np.float64
     )
-    speeds = np.array([sample.state.linear_velocity_body_mps[0] for sample in samples], dtype=np.float64)
+    speeds = np.array(
+        [sample.state.linear_velocity_body_mps[0] for sample in samples], dtype=np.float64
+    )
 
     dt = np.diff(np.concatenate(([initial_state.t_s], times)))
     rudder_rate = np.divide(np.diff(np.concatenate(([0.0], rudder))), dt)
@@ -321,7 +317,9 @@ def _compute_metrics(
     if not completed:
         failure_reason = "timeout"
     if violations:
-        failure_reason = "constraint_violation" if failure_reason is None else "timeout,constraint_violation"
+        failure_reason = (
+            "constraint_violation" if failure_reason is None else "timeout,constraint_violation"
+        )
 
     return ClosedLoopMetrics(
         completed=completed,

@@ -120,7 +120,10 @@ def test_astar_solves_all_fixed_scenes() -> None:
             scenario.vehicle,
         )
         assert metrics.is_safe, scenario.name
-        assert np.linalg.norm(result.trajectory.position_ned_m[-1] - scenario.goal_ned_m) <= scenario.goal_radius_m
+        assert (
+            np.linalg.norm(result.trajectory.position_ned_m[-1] - scenario.goal_ned_m)
+            <= scenario.goal_radius_m
+        )
 
 
 def test_astar_detours_around_sphere() -> None:

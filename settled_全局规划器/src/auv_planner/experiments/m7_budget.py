@@ -179,7 +179,9 @@ def run_m7_budget(
     _write_csv(root / "path_audit.csv", path_rows)
     _write_csv(root / "prefilter_validation.csv", prefilter_rows)
     (root / "profiles.json").write_text(
-        json.dumps([profile.manifest() for profile in DEFAULT_FAULT_PROFILES], indent=2, sort_keys=True)
+        json.dumps(
+            [profile.manifest() for profile in DEFAULT_FAULT_PROFILES], indent=2, sort_keys=True
+        )
         + "\n",
         encoding="utf-8",
     )
@@ -257,9 +259,7 @@ def _run_node_cache(
                     profile=profile,
                     safe_anchor_ned_m=probe.safe_anchor_ned_m,
                 )
-                rows.append(
-                    _node_row(probe, profile, pass_index, result, session)
-                )
+                rows.append(_node_row(probe, profile, pass_index, result, session))
     return rows
 
 
@@ -429,9 +429,8 @@ def _path_row(
         "valid_points": sum(result.status is RecoveryQueryStatus.VALID for result in results),
         "invalid_points": sum(result.status is RecoveryQueryStatus.INVALID for result in results),
         "unknown_points": sum(result.status is RecoveryQueryStatus.UNKNOWN for result in results),
-        "complete": len(results) == len(states) and all(
-            result.status is not RecoveryQueryStatus.UNKNOWN for result in results
-        ),
+        "complete": len(results) == len(states)
+        and all(result.status is not RecoveryQueryStatus.UNKNOWN for result in results),
         "certificate_coverage_s": coverage_s,
         "coverage_ratio": 0.0 if planned_duration_s <= 0.0 else coverage_s / planned_duration_s,
         "total_s": sum(result.elapsed_s for result in results),
@@ -440,7 +439,9 @@ def _path_row(
         "early_stopped_points": sum(result.early_stopped for result in results),
         "evaluated_checks": sum(result.evaluated_checks for result in results),
         "budget_exhausted": any(result.budget_exhausted for result in results),
-        "failure_reasons": ";".join(f"{reason}:{count}" for reason, count in sorted(reasons.items())),
+        "failure_reasons": ";".join(
+            f"{reason}:{count}" for reason, count in sorted(reasons.items())
+        ),
     }
 
 
@@ -509,8 +510,7 @@ def _prefilter_false_negatives(
     prefilter_rows: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     direct = {
-        (str(row["probe"]), str(row["profile"]), int(row["repeat"])): row
-        for row in single_rows
+        (str(row["probe"]), str(row["profile"]), int(row["repeat"])): row for row in single_rows
     }
     findings: list[dict[str, Any]] = []
     for row in node_rows:
@@ -633,9 +633,7 @@ def _summarize(
         and p1_online["unknown_points"] == 0
     )
     p1_coverage_gate = bool(p1_online["minimum_coverage_ratio"] >= 1.0)
-    p1_budget_gate = bool(
-        p1_time_gate and p1_coverage_gate
-    )
+    p1_budget_gate = bool(p1_time_gate and p1_coverage_gate)
     return {
         "status": "M7.0 complete; cost profiling only, no planning-performance claim",
         "probe_count": len(probes),

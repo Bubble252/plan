@@ -212,15 +212,12 @@ def _state_at_distance(
     index = int(np.clip(index, 0, trajectory.t_s.shape[0] - 2))
     segment_length = float(distances[index + 1] - distances[index])
     fraction = (
-        0.0
-        if segment_length <= 1e-12
-        else float((target_m - distances[index]) / segment_length)
+        0.0 if segment_length <= 1e-12 else float((target_m - distances[index]) / segment_length)
     )
     fraction = float(np.clip(fraction, 0.0, 1.0))
     return State(
         t_s=float(
-            trajectory.t_s[index]
-            + fraction * (trajectory.t_s[index + 1] - trajectory.t_s[index])
+            trajectory.t_s[index] + fraction * (trajectory.t_s[index + 1] - trajectory.t_s[index])
         ),
         position_ned_m=(
             (1.0 - fraction) * trajectory.position_ned_m[index]
@@ -313,9 +310,7 @@ def _certificate_coverage(
 
 
 def _trajectory_length(trajectory: Trajectory) -> float:
-    return float(
-        np.sum(np.linalg.norm(np.diff(trajectory.position_ned_m, axis=0), axis=1))
-    )
+    return float(np.sum(np.linalg.norm(np.diff(trajectory.position_ned_m, axis=0), axis=1)))
 
 
 def _dedupe_positions(positions: FloatArray) -> FloatArray:
@@ -382,15 +377,11 @@ class RecoverablePlanner:
             if not np.all(np.isfinite(self.safe_anchor_ned_m)):
                 raise ValueError("safe_anchor_ned_m must contain finite values")
         self.profile = (
-            fault_profile_by_name(self.config.profile_name)
-            if profile is None
-            else profile
+            fault_profile_by_name(self.config.profile_name) if profile is None else profile
         )
         if not isinstance(self.profile, FaultProfile):
             raise TypeError("profile must be a FaultProfile")
-        self.recovery_config = (
-            RecoveryConfig() if recovery_config is None else recovery_config
-        )
+        self.recovery_config = RecoveryConfig() if recovery_config is None else recovery_config
         if not isinstance(self.recovery_config, RecoveryConfig):
             raise TypeError("recovery_config must be a RecoveryConfig")
         self._inner = AStarPlanner(
@@ -491,12 +482,8 @@ class RecoverablePlanner:
             status=result.status,
             reason=result.reason,
             margin_m=None if certificate is None else certificate.margin_m,
-            certificate_valid_from_s=(
-                None if certificate is None else certificate.valid_from_s
-            ),
-            certificate_valid_until_s=(
-                None if certificate is None else certificate.valid_until_s
-            ),
+            certificate_valid_from_s=(None if certificate is None else certificate.valid_from_s),
+            certificate_valid_until_s=(None if certificate is None else certificate.valid_until_s),
             elapsed_s=float(result.elapsed_s),
             early_stopped=bool(result.early_stopped),
             evaluated_checks=int(result.evaluated_checks),
@@ -513,9 +500,7 @@ class RecoverablePlanner:
     ) -> tuple[_Checkpoint, ...]:
         checkpoints: list[_Checkpoint] = []
         covered_until_s: float | None = None
-        for distance_m, state in _checkpoint_states(
-            trajectory, self.config.checkpoint_spacing_m
-        ):
+        for distance_m, state in _checkpoint_states(trajectory, self.config.checkpoint_spacing_m):
             prefilter = prefilter_state(
                 state,
                 request.world,
@@ -591,10 +576,7 @@ class RecoverablePlanner:
         )
         bounds = request.world.obstacle_map.bounds_ned_m
         for direction_candidate in directions[: self.config.max_via_candidates]:
-            via = (
-                invalid.state.position_ned_m
-                + self.config.via_offset_m * direction_candidate
-            )
+            via = invalid.state.position_ned_m + self.config.via_offset_m * direction_candidate
             if np.any(via < bounds[:, 0]) or np.any(via > bounds[:, 1]):
                 continue
             remaining = timeout_s - (time.perf_counter() - started)
@@ -930,11 +912,7 @@ class RecoverablePlanner:
                 end_s=end_s,
             )
             invalid = next(
-                (
-                    item
-                    for item in checkpoints
-                    if item.status is not RecoveryQueryStatus.VALID
-                ),
+                (item for item in checkpoints if item.status is not RecoveryQueryStatus.VALID),
                 None,
             )
             attempt: dict[str, Any] = {
@@ -945,8 +923,7 @@ class RecoverablePlanner:
                     item.query_source in {"query", "cache"} for item in checkpoints
                 ),
                 "covered_checkpoints": sum(
-                    item.query_source == "covered_by_prior_certificate"
-                    for item in checkpoints
+                    item.query_source == "covered_by_prior_certificate" for item in checkpoints
                 ),
                 "prefilter_rejections": sum(
                     item.query_source == "prefilter" for item in checkpoints
@@ -962,8 +939,7 @@ class RecoverablePlanner:
             attempts.append(attempt)
 
             is_better = coverage > best_coverage + 1e-12 or (
-                abs(coverage - best_coverage) <= 1e-12
-                and max_uncovered < best_gap - 1e-12
+                abs(coverage - best_coverage) <= 1e-12 and max_uncovered < best_gap - 1e-12
             )
             if is_better:
                 best_plan = plan
@@ -1055,19 +1031,14 @@ class RecoverablePlanner:
                                 for item in detour_checkpoints
                             ),
                             "prefilter_rejections": sum(
-                                item.query_source == "prefilter"
-                                for item in detour_checkpoints
+                                item.query_source == "prefilter" for item in detour_checkpoints
                             ),
                             "checkpoint_coverage_ratio": detour_coverage,
                             "checkpoint_max_uncovered_s": detour_gap,
                             "coverage_intervals": list(detour_intervals),
-                            "checkpoints": [
-                                item.as_dict() for item in detour_checkpoints
-                            ],
+                            "checkpoints": [item.as_dict() for item in detour_checkpoints],
                             "invalid_checkpoint": (
-                                None
-                                if detour_invalid is None
-                                else detour_invalid.as_dict()
+                                None if detour_invalid is None else detour_invalid.as_dict()
                             ),
                             "blocker_added": None,
                             "selected": False,

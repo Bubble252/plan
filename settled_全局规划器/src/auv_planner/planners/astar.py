@@ -35,9 +35,7 @@ class AStarPlanner:
         if not np.isfinite(self.collision_step_m) or self.collision_step_m <= 0.0:
             raise ValueError("collision_step_m must be finite and positive")
         self._neighbour_offsets = tuple(
-            offset
-            for offset in itertools.product((-1, 0, 1), repeat=3)
-            if offset != (0, 0, 0)
+            offset for offset in itertools.product((-1, 0, 1), repeat=3) if offset != (0, 0, 0)
         )
 
     def _failure(
@@ -177,10 +175,9 @@ class AStarPlanner:
                 )
 
             current_position = index_to_world(current)
-            if (
-                float(np.linalg.norm(current_position - goal)) <= request.task.goal_radius_m
-                and validator(current_position, goal)
-            ):
+            if float(
+                np.linalg.norm(current_position - goal)
+            ) <= request.task.goal_radius_m and validator(current_position, goal):
                 indices = [current]
                 cursor = current
                 while cursor in parent:

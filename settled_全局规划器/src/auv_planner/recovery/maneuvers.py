@@ -266,8 +266,10 @@ def _target_profile(
 ) -> _Profile:
     delta = target_ned_m - state.position_ned_m
     horizontal = hypot(float(delta[0]), float(delta[1]))
-    yaw = atan2(float(delta[1]), float(delta[0])) if horizontal > 1e-9 else float(
-        euler_from_quaternion(state.quat_xyzw)[2]
+    yaw = (
+        atan2(float(delta[1]), float(delta[0]))
+        if horizontal > 1e-9
+        else float(euler_from_quaternion(state.quat_xyzw)[2])
     )
     pitch = atan2(-float(delta[2]), horizontal) if horizontal > 0.0 else 0.0
     if abs(float(delta[2])) > 1e-9 and horizontal <= 1e-9:
@@ -275,9 +277,7 @@ def _target_profile(
     return _Profile(
         target_speed_mps=target_speed_mps,
         target_yaw_rad=yaw,
-        target_pitch_rad=float(
-            np.clip(pitch, -max_pitch_angle_rad, max_pitch_angle_rad)
-        ),
+        target_pitch_rad=float(np.clip(pitch, -max_pitch_angle_rad, max_pitch_angle_rad)),
     )
 
 
@@ -300,7 +300,9 @@ def _exit_current_profile(
     up_speed = float(np.linalg.norm(world.current_field.sample(up_position, state.t_s)))
     down_speed = float(np.linalg.norm(world.current_field.sample(down_position, state.t_s)))
     if abs(up_speed - down_speed) > 1e-6:
-        target_pitch = config.max_pitch_angle_rad if up_speed < down_speed else -config.max_pitch_angle_rad
+        target_pitch = (
+            config.max_pitch_angle_rad if up_speed < down_speed else -config.max_pitch_angle_rad
+        )
         yaw = float(euler_from_quaternion(state.quat_xyzw)[2])
         return _Profile(max_speed, yaw, target_pitch), ("propeller", "pitch_fin")
     horizontal_speed = hypot(float(current[0]), float(current[1]))

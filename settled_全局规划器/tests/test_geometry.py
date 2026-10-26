@@ -262,7 +262,9 @@ def test_vectorized_sweep_matches_scalar_clearance_at_every_sample() -> None:
 
     assert sweep.sampled_poses == len(clearances)
     assert sweep.min_clearance_m == pytest.approx(min(clearances), abs=1e-12)
-    assert sweep.min_clearance_time_s == pytest.approx(float(times[clearances.index(min(clearances))]))
+    assert sweep.min_clearance_time_s == pytest.approx(
+        float(times[clearances.index(min(clearances))])
+    )
 
 
 def test_sweep_detects_rotation_collision() -> None:
@@ -301,5 +303,7 @@ def test_occupancy_grid_clearance_and_bounds() -> None:
     assert grid.point_clearance(np.array([1.5, 0.5, 0.5])) == pytest.approx(0.5)
     assert grid.point_clearance(np.array([2.5, 0.5, 0.5])) == pytest.approx(-0.5)
 
-    empty = OccupancyGrid(origin_ned_m=np.zeros(3), resolution_m=1.0, occupied=np.zeros((2, 2, 2), dtype=bool))
+    empty = OccupancyGrid(
+        origin_ned_m=np.zeros(3), resolution_m=1.0, occupied=np.zeros((2, 2, 2), dtype=bool)
+    )
     assert empty.point_clearance(np.array([1.0, 1.0, 1.0])) == pytest.approx(1.0)

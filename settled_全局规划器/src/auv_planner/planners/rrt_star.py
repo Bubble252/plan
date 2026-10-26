@@ -158,7 +158,11 @@ class RRTStarPlanner:
             distance = float(np.linalg.norm(delta))
             if distance <= 1e-12:
                 continue
-            candidate = sample.copy() if distance <= self.step_size_m else nearest + self.step_size_m * delta / distance
+            candidate = (
+                sample.copy()
+                if distance <= self.step_size_m
+                else nearest + self.step_size_m * delta / distance
+            )
             if np.any(candidate < lower) or np.any(candidate > upper):
                 continue
             if not validator(nearest, candidate):
@@ -194,7 +198,9 @@ class RRTStarPlanner:
             for index in near_indices:
                 if index == parent_index or index in ancestors:
                     continue
-                rewired_cost = costs[new_index] + float(np.linalg.norm(positions[index] - candidate))
+                rewired_cost = costs[new_index] + float(
+                    np.linalg.norm(positions[index] - candidate)
+                )
                 if rewired_cost + 1e-12 >= costs[index]:
                     continue
                 if not validator(candidate, positions[index]):

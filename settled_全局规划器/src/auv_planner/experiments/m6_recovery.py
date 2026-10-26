@@ -365,8 +365,12 @@ def run_x1_delays(nodes: tuple[M6KeyNode, ...]) -> list[dict[str, Any]]:
                         ),
                         "margin_m": fault_check.margin_m,
                         "best_attempt": best.candidate.name if best is not None else None,
-                        "best_attempt_clearance_m": best.min_clearance_m if best is not None else None,
-                        "best_attempt_failure_reason": best.failure_reason if best is not None else None,
+                        "best_attempt_clearance_m": best.min_clearance_m
+                        if best is not None
+                        else None,
+                        "best_attempt_failure_reason": best.failure_reason
+                        if best is not None
+                        else None,
                         "coast_min_clearance_m": fault_check.coast_min_clearance_m,
                         "unavailable_maneuvers": list(fault_check.unavailable_maneuvers),
                         "computation_time_s": assessment.computation_time_s,
@@ -434,7 +438,9 @@ def _counterexample_details(nodes: tuple[M6KeyNode, ...]) -> dict[str, Any]:
     return {
         "node": node.name,
         "current_clearance_m": assessment.current_clearance_m,
-        "required_inflated_clearance_m": config.required_inflated_clearance_m(node.scenario.vehicle),
+        "required_inflated_clearance_m": config.required_inflated_clearance_m(
+            node.scenario.vehicle
+        ),
         "certificate_valid": assessment.valid,
         "reason": assessment.certificate.reason,
         "best_attempt": best.candidate.name,

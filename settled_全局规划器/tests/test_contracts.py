@@ -38,7 +38,9 @@ from auv_planner.planners.straight_line import StraightLinePlanner
 def make_request() -> PlanRequest:
     world = WorldSnapshot(
         t_s=0.0,
-        obstacle_map=ObstacleMap(bounds_ned_m=np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])),
+        obstacle_map=ObstacleMap(
+            bounds_ned_m=np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
+        ),
         current_field=UniformCurrent(velocity_ned_mps=np.zeros(3)),
     )
     return PlanRequest(

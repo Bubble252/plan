@@ -106,7 +106,9 @@ def evaluate_plan(request: PlanRequest, plan: PlanResult) -> EvalResult:
         request.world.obstacle_map,
         request.vehicle,
     )
-    goal_distance = float(np.linalg.norm(plan.trajectory.position_ned_m[-1] - request.task.goal_ned_m))
+    goal_distance = float(
+        np.linalg.norm(plan.trajectory.position_ned_m[-1] - request.task.goal_ned_m)
+    )
     goal_reached = goal_distance <= request.task.goal_radius_m
     success = plan.status is PlanStatus.OK and goal_reached and path_metrics.is_safe
     reasons: list[str] = []

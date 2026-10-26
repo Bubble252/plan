@@ -323,20 +323,20 @@ def sample_trajectory_states(trajectory: Trajectory, interval_s: float) -> tuple
             next_index = index + 1
             duration = float(times[next_index] - times[index])
             fraction = 0.0 if duration <= 1e-12 else float((target - times[index]) / duration)
-            position = (1.0 - fraction) * trajectory.position_ned_m[index] + fraction * trajectory.position_ned_m[next_index]
+            position = (1.0 - fraction) * trajectory.position_ned_m[
+                index
+            ] + fraction * trajectory.position_ned_m[next_index]
             quat = _slerp(
                 trajectory.quat_xyzw[index],
                 trajectory.quat_xyzw[next_index],
                 fraction,
             )
-            velocity = (
-                (1.0 - fraction) * trajectory.linear_velocity_body_mps[index]
-                + fraction * trajectory.linear_velocity_body_mps[next_index]
-            )
-            angular = (
-                (1.0 - fraction) * trajectory.angular_velocity_body_rps[index]
-                + fraction * trajectory.angular_velocity_body_rps[next_index]
-            )
+            velocity = (1.0 - fraction) * trajectory.linear_velocity_body_mps[
+                index
+            ] + fraction * trajectory.linear_velocity_body_mps[next_index]
+            angular = (1.0 - fraction) * trajectory.angular_velocity_body_rps[
+                index
+            ] + fraction * trajectory.angular_velocity_body_rps[next_index]
         states.append(
             State(
                 t_s=float(target),
@@ -610,7 +610,9 @@ def audit_trajectory(
                 position_ned_m=state.position_ned_m.copy(),
                 quat_xyzw=state.quat_xyzw.copy(),
                 clearance_m=float(prefilter.current_clearance_m),
-                prefilter_reason=None if not prefilter.rejected else f"prefilter:{prefilter.reason}",
+                prefilter_reason=None
+                if not prefilter.rejected
+                else f"prefilter:{prefilter.reason}",
                 online_status=online_status,
                 online_reason=online_reason,
                 online_elapsed_s=float(online_elapsed),
@@ -624,7 +626,9 @@ def audit_trajectory(
                 certificate_valid_from_s=valid_from,
                 certificate_valid_until_s=valid_until,
                 failure_source=_failure_source(
-                    prefilter_reason=None if not prefilter.rejected else f"prefilter:{prefilter.reason}",
+                    prefilter_reason=None
+                    if not prefilter.rejected
+                    else f"prefilter:{prefilter.reason}",
                     full_result=full,
                 ),
             )
@@ -638,9 +642,7 @@ def audit_trajectory(
         end_s=end_s,
     )
     metrics = compute_path_metrics(trajectory, scenario.world.obstacle_map, scenario.vehicle)
-    failures = Counter(
-        point.failure_source for point in points if point.failure_source is not None
-    )
+    failures = Counter(point.failure_source for point in points if point.failure_source is not None)
     return PathAudit(
         case_name=case_name,
         scenario_name=scenario.name,
@@ -705,7 +707,9 @@ def _failed_path_audit(
     )
 
 
-def _prefix_positions(trajectory: Trajectory, end_s: float, end_position: FloatArray) -> list[FloatArray]:
+def _prefix_positions(
+    trajectory: Trajectory, end_s: float, end_position: FloatArray
+) -> list[FloatArray]:
     positions = [
         trajectory.position_ned_m[index].copy()
         for index in range(trajectory.t_s.shape[0])
@@ -716,7 +720,9 @@ def _prefix_positions(trajectory: Trajectory, end_s: float, end_position: FloatA
     return positions
 
 
-def _suffix_positions(trajectory: Trajectory, start_s: float, start_position: FloatArray) -> list[FloatArray]:
+def _suffix_positions(
+    trajectory: Trajectory, start_s: float, start_position: FloatArray
+) -> list[FloatArray]:
     positions = [start_position.copy()]
     positions.extend(
         trajectory.position_ned_m[index].copy()
@@ -1196,7 +1202,9 @@ def _write_paths_csv(path: Path, cases: Sequence[M71CaseResult]) -> None:
                     "uncovered_intervals": ";".join(
                         f"{lo:g}-{hi:g}" for lo, hi in audit.uncovered_intervals
                     ),
-                    "failure_sources": ";".join(f"{name}:{count}" for name, count in audit.failure_sources),
+                    "failure_sources": ";".join(
+                        f"{name}:{count}" for name, count in audit.failure_sources
+                    ),
                 }
             )
     _write_csv(path, rows)
@@ -1233,10 +1241,14 @@ def _write_points_csv(path: Path, cases: Sequence[M71CaseResult]) -> None:
                         "full_early_stopped": point.full_early_stopped,
                         "full_evaluated_checks": point.full_evaluated_checks,
                         "certificate_valid_from_s": (
-                            "" if point.certificate_valid_from_s is None else point.certificate_valid_from_s
+                            ""
+                            if point.certificate_valid_from_s is None
+                            else point.certificate_valid_from_s
                         ),
                         "certificate_valid_until_s": (
-                            "" if point.certificate_valid_until_s is None else point.certificate_valid_until_s
+                            ""
+                            if point.certificate_valid_until_s is None
+                            else point.certificate_valid_until_s
                         ),
                         "failure_source": point.failure_source or "",
                     }
@@ -1326,7 +1338,9 @@ def _audit_group(audits: Sequence[PathAudit]) -> dict[str, Any]:
     full_end_to_end = _timing([audit.full_end_to_end_s for audit in audits])
     full_median = float(full_end_to_end["median"])
     share = {
-        name: 0.0 if full_median <= 0.0 else float(_timing([value(audit) for audit in audits])["median"]) / full_median
+        name: 0.0
+        if full_median <= 0.0
+        else float(_timing([value(audit) for audit in audits])["median"]) / full_median
         for name, value in (
             ("planning", lambda audit: audit.planning_time_s),
             ("prefilter", lambda audit: audit.prefilter_time_s),
@@ -1337,7 +1351,9 @@ def _audit_group(audits: Sequence[PathAudit]) -> dict[str, Any]:
     return {
         "paths": len(audits),
         "plan_success": sum(audit.plan_success for audit in audits),
-        "plan_success_rate": 0.0 if not audits else sum(audit.plan_success for audit in audits) / len(audits),
+        "plan_success_rate": 0.0
+        if not audits
+        else sum(audit.plan_success for audit in audits) / len(audits),
         "sampled_points": sum(len(audit.points) for audit in audits),
         "valid_points": sum(audit.valid_points for audit in audits),
         "invalid_points": sum(audit.invalid_points for audit in audits),
@@ -1357,13 +1373,9 @@ def _audit_group(audits: Sequence[PathAudit]) -> dict[str, Any]:
 def _summary_payload(result: M71ExperimentResult) -> dict[str, Any]:
     aggregate_cases = tuple(case for case in result.cases if case.include_in_aggregate)
     baseline = tuple(case.baseline for case in aggregate_cases)
-    repair_attempted = tuple(
-        case.repair for case in aggregate_cases if case.repair is not None
-    )
+    repair_attempted = tuple(case.repair for case in aggregate_cases if case.repair is not None)
     repair_accepted = tuple(
-        case.repair
-        for case in aggregate_cases
-        if case.repair is not None and case.repair_accepted
+        case.repair for case in aggregate_cases if case.repair is not None and case.repair_accepted
     )
     failure_counts: Counter[str] = Counter()
     for case in result.cases:
@@ -1420,8 +1432,12 @@ def _summary_payload(result: M71ExperimentResult) -> dict[str, Any]:
                 "include_in_aggregate": case.include_in_aggregate,
                 "baseline_coverage_ratio": case.baseline.coverage_ratio,
                 "baseline_max_uncovered_s": case.baseline.max_uncovered_s,
-                "repair_coverage_ratio": None if case.repair is None else case.repair.coverage_ratio,
-                "repair_max_uncovered_s": None if case.repair is None else case.repair.max_uncovered_s,
+                "repair_coverage_ratio": None
+                if case.repair is None
+                else case.repair.coverage_ratio,
+                "repair_max_uncovered_s": None
+                if case.repair is None
+                else case.repair.max_uncovered_s,
                 "repair_accepted": case.repair_accepted,
                 "repair_reason": case.repair_reason,
                 "repair_attempts": len(case.repair_attempts),

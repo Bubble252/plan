@@ -43,13 +43,16 @@ def test_fault_profiles_are_versioned_and_have_expected_check_counts() -> None:
     assert P0_NOMINAL.check_count == 1
     assert P1_DEGRADED.check_count == 8
     assert P2_M6_STRESS.check_count == 24
-    assert P0_NOMINAL.digest == FaultProfile(
-        name=P0_NOMINAL.name,
-        faults=P0_NOMINAL.faults,
-        diagnosis_delays_s=P0_NOMINAL.diagnosis_delays_s,
-        description=P0_NOMINAL.description,
-        version=P0_NOMINAL.version,
-    ).digest
+    assert (
+        P0_NOMINAL.digest
+        == FaultProfile(
+            name=P0_NOMINAL.name,
+            faults=P0_NOMINAL.faults,
+            diagnosis_delays_s=P0_NOMINAL.diagnosis_delays_s,
+            description=P0_NOMINAL.description,
+            version=P0_NOMINAL.version,
+        ).digest
+    )
     assert len(P1_DEGRADED.digest) == 64
 
 

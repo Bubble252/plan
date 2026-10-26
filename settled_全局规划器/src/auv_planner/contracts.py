@@ -135,8 +135,12 @@ class State:
         _non_negative(self.t_s, "t_s")
         if not self.frame_id:
             raise ValueError("frame_id must not be empty")
-        object.__setattr__(self, "position_ned_m", _vector(self.position_ned_m, 3, "position_ned_m"))
-        object.__setattr__(self, "quat_xyzw", _quat_norm(_vector(self.quat_xyzw, 4, "quat_xyzw"), "quat_xyzw"))
+        object.__setattr__(
+            self, "position_ned_m", _vector(self.position_ned_m, 3, "position_ned_m")
+        )
+        object.__setattr__(
+            self, "quat_xyzw", _quat_norm(_vector(self.quat_xyzw, 4, "quat_xyzw"), "quat_xyzw")
+        )
         object.__setattr__(
             self,
             "linear_velocity_body_mps",
@@ -218,8 +222,7 @@ class ObstacleMap:
 
 @runtime_checkable
 class CurrentField(Protocol):
-    def sample(self, position_ned_m: FloatArray, t_s: float) -> FloatArray:
-        ...
+    def sample(self, position_ned_m: FloatArray, t_s: float) -> FloatArray: ...
 
 
 @dataclass(frozen=True)
@@ -227,7 +230,9 @@ class UniformCurrent:
     velocity_ned_mps: FloatArray
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "velocity_ned_mps", _vector(self.velocity_ned_mps, 3, "velocity_ned_mps"))
+        object.__setattr__(
+            self, "velocity_ned_mps", _vector(self.velocity_ned_mps, 3, "velocity_ned_mps")
+        )
 
     def sample(self, position_ned_m: FloatArray, t_s: float) -> FloatArray:
         _vector(position_ned_m, 3, "position_ned_m")
@@ -391,12 +396,18 @@ class Trajectory:
         if not self.frame_id:
             raise ValueError("frame_id must not be empty")
         if self.feasibility not in {"unchecked", "tracked", "kinodynamically_feasible"}:
-            raise ValueError("feasibility must be 'unchecked', 'tracked', or 'kinodynamically_feasible'")
+            raise ValueError(
+                "feasibility must be 'unchecked', 'tracked', or 'kinodynamically_feasible'"
+            )
         t_s = _time_array(self.t_s)
         rows = t_s.shape[0]
         object.__setattr__(self, "t_s", t_s)
-        object.__setattr__(self, "position_ned_m", _rows(self.position_ned_m, rows, 3, "position_ned_m"))
-        object.__setattr__(self, "quat_xyzw", _quat_norm(_rows(self.quat_xyzw, rows, 4, "quat_xyzw"), "quat_xyzw"))
+        object.__setattr__(
+            self, "position_ned_m", _rows(self.position_ned_m, rows, 3, "position_ned_m")
+        )
+        object.__setattr__(
+            self, "quat_xyzw", _quat_norm(_rows(self.quat_xyzw, rows, 4, "quat_xyzw"), "quat_xyzw")
+        )
         object.__setattr__(
             self,
             "linear_velocity_body_mps",
@@ -415,7 +426,9 @@ class Trajectory:
                 raise ValueError("controls must contain only finite values")
             object.__setattr__(self, "controls", controls)
         if self.clearance_m is not None:
-            object.__setattr__(self, "clearance_m", _row_vector(self.clearance_m, rows, "clearance_m"))
+            object.__setattr__(
+                self, "clearance_m", _row_vector(self.clearance_m, rows, "clearance_m")
+            )
 
 
 @dataclass(frozen=True)
@@ -459,8 +472,12 @@ class Reference:
 
     def __post_init__(self) -> None:
         _non_negative(self.stamp_s, "stamp_s")
-        object.__setattr__(self, "position_ned_m", _vector(self.position_ned_m, 3, "position_ned_m"))
-        object.__setattr__(self, "quat_xyzw", _quat_norm(_vector(self.quat_xyzw, 4, "quat_xyzw"), "quat_xyzw"))
+        object.__setattr__(
+            self, "position_ned_m", _vector(self.position_ned_m, 3, "position_ned_m")
+        )
+        object.__setattr__(
+            self, "quat_xyzw", _quat_norm(_vector(self.quat_xyzw, 4, "quat_xyzw"), "quat_xyzw")
+        )
         object.__setattr__(
             self,
             "linear_velocity_body_mps",
@@ -538,12 +555,10 @@ class ActuatorCommand(Protocol):
     """Platform-neutral command interface consumed by a simulator backend."""
 
     @property
-    def stamp_s(self) -> float:
-        ...
+    def stamp_s(self) -> float: ...
 
     @property
-    def valid_until_s(self) -> float | None:
-        ...
+    def valid_until_s(self) -> float | None: ...
 
 
 @dataclass(frozen=True)
@@ -587,7 +602,10 @@ class SimulationSnapshot:
             raise ValueError("state and world timestamps must match")
         if self.actuator_state is not None and not isinstance(self.actuator_state, ActuatorCommand):
             raise TypeError("actuator_state must be an ActuatorCommand")
-        if self.actuator_state is not None and abs(self.actuator_state.stamp_s - self.state.t_s) > 1e-9:
+        if (
+            self.actuator_state is not None
+            and abs(self.actuator_state.stamp_s - self.state.t_s) > 1e-9
+        ):
             raise ValueError("actuator_state and state timestamps must match")
         object.__setattr__(self, "diagnostics", dict(self.diagnostics))
 

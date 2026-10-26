@@ -85,7 +85,10 @@ def scene_catalog_manifest() -> dict[str, Any]:
                 "start_linear_velocity_body_mps": scenario.start.linear_velocity_body_mps.tolist(),
                 "goal_ned_m": scenario.goal_ned_m.tolist(),
                 "goal_radius_m": scenario.goal_radius_m,
-                "obstacles": [_obstacle_manifest(obstacle) for obstacle in scenario.world.obstacle_map.obstacles],
+                "obstacles": [
+                    _obstacle_manifest(obstacle)
+                    for obstacle in scenario.world.obstacle_map.obstacles
+                ],
                 "current": _current_manifest(scenario),
                 "constraints": dict(scenario.constraints),
             }

@@ -162,7 +162,9 @@ def test_guidance_is_deterministic_and_returns_contract_arrays() -> None:
     assert np.allclose(first.desired_body_direction_ned, second.desired_body_direction_ned)
     assert np.allclose(first.reference.position_ned_m, second.reference.position_ned_m)
     assert np.allclose(first.reference.quat_xyzw, second.reference.quat_xyzw)
-    assert np.allclose(first.reference.linear_velocity_body_mps, second.reference.linear_velocity_body_mps)
+    assert np.allclose(
+        first.reference.linear_velocity_body_mps, second.reference.linear_velocity_body_mps
+    )
     assert np.allclose(first.reference.angular_velocity_body_rps, np.zeros(3))
     assert np.linalg.norm(first.reference.quat_xyzw) == pytest.approx(1.0)
 

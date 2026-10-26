@@ -36,7 +36,9 @@ class DepthShearCurrent:
             "reference_velocity_ned_mps",
             _vector(self.reference_velocity_ned_mps, "reference_velocity_ned_mps"),
         )
-        object.__setattr__(self, "shear_ned_per_m", _vector(self.shear_ned_per_m, "shear_ned_per_m"))
+        object.__setattr__(
+            self, "shear_ned_per_m", _vector(self.shear_ned_per_m, "shear_ned_per_m")
+        )
         if not np.isfinite(self.reference_depth_m):
             raise ValueError("reference_depth_m must be finite")
 

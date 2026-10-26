@@ -79,7 +79,9 @@ class PvsRemus100Backend:
         if not np.isfinite(sample_time_s) or sample_time_s <= 0.0:
             raise ValueError("sample_time_s must be finite and positive")
         self.sample_time_s = float(sample_time_s)
-        self.pvs_source_dir = Path(pvs_source_dir) if pvs_source_dir is not None else _default_pvs_source_dir()
+        self.pvs_source_dir = (
+            Path(pvs_source_dir) if pvs_source_dir is not None else _default_pvs_source_dir()
+        )
         self.allow_sheared_current = bool(allow_sheared_current)
         self._model: Any = None
         self._attitude_euler: Any = None
@@ -254,9 +256,13 @@ class PvsRemus100Backend:
             raise ValueError("PVS REMUS 100 backend supports only UniformCurrent")
         velocity = field.sample(position_ned_m, t_s)
         if abs(float(velocity[2])) > 1e-9:
-            raise ValueError("PVS REMUS 100 supports only horizontal current; vertical component is not modeled")
+            raise ValueError(
+                "PVS REMUS 100 supports only horizontal current; vertical component is not modeled"
+            )
         speed = float(hypot(velocity[0], velocity[1]))
-        direction_rad = float(atan2(float(velocity[1]), float(velocity[0]))) if speed > 1e-12 else 0.0
+        direction_rad = (
+            float(atan2(float(velocity[1]), float(velocity[0]))) if speed > 1e-12 else 0.0
+        )
         self._current_speed_mps = speed
         self._current_direction_rad = direction_rad
         self._model.V_c = speed

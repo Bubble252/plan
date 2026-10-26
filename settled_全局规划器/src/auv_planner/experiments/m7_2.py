@@ -413,10 +413,14 @@ def _write_points_csv(path: Path, runs: Sequence[M72Run]) -> None:
                     "full_reason": point.full_reason or "",
                     "full_elapsed_s": point.full_elapsed_s,
                     "certificate_valid_from_s": (
-                        "" if point.certificate_valid_from_s is None else point.certificate_valid_from_s
+                        ""
+                        if point.certificate_valid_from_s is None
+                        else point.certificate_valid_from_s
                     ),
                     "certificate_valid_until_s": (
-                        "" if point.certificate_valid_until_s is None else point.certificate_valid_until_s
+                        ""
+                        if point.certificate_valid_until_s is None
+                        else point.certificate_valid_until_s
                     ),
                     "failure_source": point.failure_source or "",
                 }
@@ -434,7 +438,9 @@ def _write_checkpoints_csv(path: Path, runs: Sequence[M72Run]) -> None:
             if not isinstance(attempt, dict):
                 continue
             blocker = attempt.get("blocker_added")
-            blocker_position = None if not isinstance(blocker, dict) else blocker.get("position_ned_m")
+            blocker_position = (
+                None if not isinstance(blocker, dict) else blocker.get("position_ned_m")
+            )
             checkpoints = attempt.get("checkpoints", [])
             if not isinstance(checkpoints, list):
                 continue
@@ -448,12 +454,8 @@ def _write_checkpoints_csv(path: Path, runs: Sequence[M72Run]) -> None:
                         "variant": run.variant,
                         "attempt": attempt.get("iteration", ""),
                         "selected": attempt.get("selected", False),
-                        "checkpoint_coverage_ratio": attempt.get(
-                            "checkpoint_coverage_ratio", ""
-                        ),
-                        "checkpoint_max_uncovered_s": attempt.get(
-                            "checkpoint_max_uncovered_s", ""
-                        ),
+                        "checkpoint_coverage_ratio": attempt.get("checkpoint_coverage_ratio", ""),
+                        "checkpoint_max_uncovered_s": attempt.get("checkpoint_max_uncovered_s", ""),
                         "distance_m": point.get("distance_m", ""),
                         "t_s": point.get("t_s", ""),
                         "x_m": position[0],
@@ -470,7 +472,9 @@ def _write_checkpoints_csv(path: Path, runs: Sequence[M72Run]) -> None:
                         "blocker_x_m": "" if blocker_position is None else blocker_position[0],
                         "blocker_y_m": "" if blocker_position is None else blocker_position[1],
                         "blocker_z_m": "" if blocker_position is None else blocker_position[2],
-                        "blocker_radius_m": "" if not isinstance(blocker, dict) else blocker.get("radius_m", ""),
+                        "blocker_radius_m": ""
+                        if not isinstance(blocker, dict)
+                        else blocker.get("radius_m", ""),
                     }
                 )
     _write_csv(path, rows)
@@ -568,9 +572,7 @@ def _variant_summary(runs: Sequence[M72Run]) -> dict[str, Any]:
     failure_reasons = Counter(
         run.audit.plan_reason or "unknown" for run in runs if not run.nominal_success
     )
-    failure_sources = Counter(
-        name for run in runs for name, _ in run.audit.failure_sources
-    )
+    failure_sources = Counter(name for run in runs for name, _ in run.audit.failure_sources)
     query_stats = [
         run.diagnostics.get("recovery_query_stats", {})
         for run in runs
@@ -585,9 +587,7 @@ def _variant_summary(runs: Sequence[M72Run]) -> dict[str, Any]:
         "coverage_ratio_all": _stats([run.audit.coverage_ratio for run in runs]),
         "coverage_ratio_successful": _stats([run.audit.coverage_ratio for run in successful]),
         "max_uncovered_s_all": _stats([run.audit.max_uncovered_s for run in runs]),
-        "max_uncovered_s_successful": _stats(
-            [run.audit.max_uncovered_s for run in successful]
-        ),
+        "max_uncovered_s_successful": _stats([run.audit.max_uncovered_s for run in successful]),
         "path_length_m": _stats([run.audit.path_length_m for run in successful]),
         "min_clearance_m": _stats([run.audit.min_clearance_m for run in successful]),
         "planning_time_s": _stats([run.audit.planning_time_s for run in runs]),
@@ -600,9 +600,7 @@ def _variant_summary(runs: Sequence[M72Run]) -> dict[str, Any]:
         "cache_hits": int(sum(int(row.get("cache_hits", 0)) for row in query_stats)),
         "cache_misses": int(sum(int(row.get("cache_misses", 0)) for row in query_stats)),
         "budget_exhausted": int(sum(int(row.get("budget_exhausted", 0)) for row in query_stats)),
-        "replans": int(
-            sum(int(run.diagnostics.get("replans", 0) or 0) for run in runs)
-        ),
+        "replans": int(sum(int(run.diagnostics.get("replans", 0) or 0) for run in runs)),
         "failure_reasons": dict(sorted(failure_reasons.items())),
         "failure_sources": dict(sorted(failure_sources.items())),
     }
@@ -652,16 +650,12 @@ def _on_off_summary(runs: Sequence[M72Run]) -> dict[str, Any]:
                 "on_coverage": on.audit.coverage_ratio if on.nominal_success else None,
                 "off_coverage": off.audit.coverage_ratio if off.nominal_success else None,
                 "coverage_delta": (
-                    on.audit.coverage_ratio - off.audit.coverage_ratio
-                    if both_success
-                    else None
+                    on.audit.coverage_ratio - off.audit.coverage_ratio if both_success else None
                 ),
                 "on_gap_s": on.audit.max_uncovered_s if on.nominal_success else None,
                 "off_gap_s": off.audit.max_uncovered_s if off.nominal_success else None,
                 "gap_delta_s": (
-                    on.audit.max_uncovered_s - off.audit.max_uncovered_s
-                    if both_success
-                    else None
+                    on.audit.max_uncovered_s - off.audit.max_uncovered_s if both_success else None
                 ),
                 "on_path_length_m": on.audit.path_length_m if on.nominal_success else None,
                 "off_path_length_m": off.audit.path_length_m if off.nominal_success else None,
@@ -686,9 +680,7 @@ def _on_off_summary(runs: Sequence[M72Run]) -> dict[str, Any]:
         "coverage_improved": sum(
             float(item["coverage_delta"]) > 1e-12 for item in both_success_cases
         ),
-        "gap_improved": sum(
-            float(item["gap_delta_s"]) < -1e-12 for item in both_success_cases
-        ),
+        "gap_improved": sum(float(item["gap_delta_s"]) < -1e-12 for item in both_success_cases),
         "different_paths": sum(
             item["path_rms_difference_m"] is not None
             and float(item["path_rms_difference_m"]) > 0.05

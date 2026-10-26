@@ -79,7 +79,9 @@ def test_pvs_backend_resets_and_steps_with_synchronized_state() -> None:
     assert initial.state.t_s == pytest.approx(2.0)
     assert initial.world.t_s == pytest.approx(2.0)
     assert initial.state.position_ned_m == pytest.approx(scenario.start.position_ned_m)
-    assert abs(float(np.dot(initial.state.quat_xyzw, scenario.start.quat_xyzw))) == pytest.approx(1.0)
+    assert abs(float(np.dot(initial.state.quat_xyzw, scenario.start.quat_xyzw))) == pytest.approx(
+        1.0
+    )
     assert initial.actuator_state is not None
     assert isinstance(initial.actuator_state, Remus100ActuatorCommand)
     assert initial.actuator_state.propeller_rpm == pytest.approx(0.0)
@@ -117,7 +119,9 @@ def test_pvs_backend_is_deterministic_for_identical_inputs() -> None:
     assert np.allclose(first.state.position_ned_m, second.state.position_ned_m)
     assert np.allclose(first.state.quat_xyzw, second.state.quat_xyzw)
     assert np.allclose(first.state.linear_velocity_body_mps, second.state.linear_velocity_body_mps)
-    assert np.allclose(first.state.angular_velocity_body_rps, second.state.angular_velocity_body_rps)
+    assert np.allclose(
+        first.state.angular_velocity_body_rps, second.state.angular_velocity_body_rps
+    )
 
 
 def test_pvs_backend_reports_horizontal_current_mapping() -> None:

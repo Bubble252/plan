@@ -147,9 +147,7 @@ class Remus100TrackingController:
         self.max_stern_plane_rate_rad_s = _required_limit(
             vehicle.max_stern_plane_rate_rad_s, "max_stern_plane_rate_rad_s"
         )
-        self.max_propeller_rpm = _required_limit(
-            vehicle.max_propeller_rpm, "max_propeller_rpm"
-        )
+        self.max_propeller_rpm = _required_limit(vehicle.max_propeller_rpm, "max_propeller_rpm")
 
         self.last_diagnostics: Remus100ControlDiagnostics | None = None
         self.reset()
@@ -187,15 +185,11 @@ class Remus100TrackingController:
 
         yaw_rate = float(state.angular_velocity_body_rps[2])
         pitch_rate = float(state.angular_velocity_body_rps[1])
-        unsaturated_rudder = (
-            self.heading_gain * heading_error
-            + self.heading_rate_gain
-            * (float(reference.angular_velocity_body_rps[2]) - yaw_rate)
+        unsaturated_rudder = self.heading_gain * heading_error + self.heading_rate_gain * (
+            float(reference.angular_velocity_body_rps[2]) - yaw_rate
         )
-        unsaturated_stern_plane = (
-            -self.pitch_gain * pitch_error
-            + self.pitch_rate_gain
-            * (float(reference.angular_velocity_body_rps[1]) - pitch_rate)
+        unsaturated_stern_plane = -self.pitch_gain * pitch_error + self.pitch_rate_gain * (
+            float(reference.angular_velocity_body_rps[1]) - pitch_rate
         )
         rudder = float(
             np.clip(
@@ -248,9 +242,7 @@ class Remus100TrackingController:
         saturated_high = unsaturated_rpm > self.max_propeller_rpm and speed_error > 0.0
         saturated_low = unsaturated_rpm < 0.0 and speed_error < 0.0
         if not saturated_high and not saturated_low:
-            self._speed_integral_rpm += (
-                self.speed_integral_gain_rpm_per_mps_s * speed_error * dt_s
-            )
+            self._speed_integral_rpm += self.speed_integral_gain_rpm_per_mps_s * speed_error * dt_s
             self._speed_integral_rpm = float(
                 np.clip(
                     self._speed_integral_rpm,

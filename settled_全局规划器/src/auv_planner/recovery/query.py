@@ -70,10 +70,7 @@ class RecoveryQueryPolicy:
             raise TypeError("mode must be a RecoveryQueryMode")
         if not isinstance(self.parallel_workers, int) or self.parallel_workers < 1:
             raise ValueError("parallel_workers must be a positive integer")
-        if (
-            self.mode is RecoveryQueryMode.ONLINE_FAST
-            and self.parallel_workers > 1
-        ):
+        if self.mode is RecoveryQueryMode.ONLINE_FAST and self.parallel_workers > 1:
             raise ValueError(
                 "online_fast mode is sequential; parallel_workers > 1 is not supported"
             )
@@ -188,9 +185,7 @@ class RecoveryQuerySession:
         self._cache: dict[str, RecoveryQueryResult] = {}
         self._started_at = perf_counter()
         self._deadline = (
-            None
-            if self._policy.budget_s is None
-            else self._started_at + self._policy.budget_s
+            None if self._policy.budget_s is None else self._started_at + self._policy.budget_s
         )
         self.stats = RecoveryQueryStats()
 
@@ -295,11 +290,7 @@ class RecoveryQuerySession:
         if budget_exhausted:
             status = RecoveryQueryStatus.UNKNOWN
         else:
-            status = (
-                RecoveryQueryStatus.VALID
-                if assessment.valid
-                else RecoveryQueryStatus.INVALID
-            )
+            status = RecoveryQueryStatus.VALID if assessment.valid else RecoveryQueryStatus.INVALID
         result = RecoveryQueryResult(
             status=status,
             profile_name=profile.name,
@@ -389,9 +380,7 @@ def _query_key(
         },
         "vehicle": _vehicle_payload(vehicle),
         "config": _config_payload(config),
-        "safe_anchor_ned_m": (
-            None if safe_anchor_ned_m is None else _array(safe_anchor_ned_m)
-        ),
+        "safe_anchor_ned_m": (None if safe_anchor_ned_m is None else _array(safe_anchor_ned_m)),
     }
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
@@ -419,9 +408,7 @@ def _obstacle_map_payload(world: WorldSnapshot) -> dict[str, Any]:
                 "center_ned_m": _array(obstacle.center_ned_m),
                 "radius_m": None if obstacle.radius_m is None else _float(obstacle.radius_m),
                 "half_extents_m": (
-                    None
-                    if obstacle.half_extents_m is None
-                    else _array(obstacle.half_extents_m)
+                    None if obstacle.half_extents_m is None else _array(obstacle.half_extents_m)
                 ),
                 "height_m": None if obstacle.height_m is None else _float(obstacle.height_m),
             }

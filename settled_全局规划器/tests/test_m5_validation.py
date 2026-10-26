@@ -9,9 +9,7 @@ from auv_planner.experiments.m5_validation import (
 
 
 def test_m5_derivative_differences_stay_within_audited_model_bands() -> None:
-    rows: dict[str, dict[str, Any]] = {
-        str(row["case"]): row for row in run_derivative_comparison()
-    }
+    rows: dict[str, dict[str, Any]] = {str(row["case"]): row for row in run_derivative_comparison()}
     calm = ("calm_straight", "calm_rudder", "calm_stern_plane", "combined_attitude")
     for name in calm:
         assert float(rows[name]["relative_l2"]) < 0.07

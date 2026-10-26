@@ -77,9 +77,7 @@ def test_controller_satisfies_protocol_and_enforces_fin_limits() -> None:
     assert abs(first.rudder_angle_rad) <= max_rudder_angle
     assert abs(first.stern_plane_angle_rad) <= max_stern_plane_angle
     assert 0.0 <= first.propeller_rpm <= max_propeller_rpm
-    assert abs(second.rudder_angle_rad - first.rudder_angle_rad) <= (
-        max_rudder_rate * 0.02 + 1e-12
-    )
+    assert abs(second.rudder_angle_rad - first.rudder_angle_rad) <= (max_rudder_rate * 0.02 + 1e-12)
     assert abs(second.stern_plane_angle_rad - first.stern_plane_angle_rad) <= (
         max_stern_plane_rate * 0.02 + 1e-12
     )

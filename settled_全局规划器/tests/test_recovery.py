@@ -71,12 +71,20 @@ def test_maneuver_library_covers_required_kinds_and_respects_vehicle_limits() ->
         assert trajectory.feasibility == "kinodynamically_feasible"
         assert trajectory.t_s[-1] - trajectory.t_s[0] == pytest.approx(config.horizon_s)
         assert np.all(np.diff(trajectory.t_s) > 0.0)
-        assert np.max(np.abs(trajectory.angular_velocity_body_rps[:, 1])) <= vehicle.max_pitch_rate_rps + 1e-9
-        assert np.max(np.abs(trajectory.angular_velocity_body_rps[:, 2])) <= vehicle.max_yaw_rate_rps + 1e-9
+        assert (
+            np.max(np.abs(trajectory.angular_velocity_body_rps[:, 1]))
+            <= vehicle.max_pitch_rate_rps + 1e-9
+        )
+        assert (
+            np.max(np.abs(trajectory.angular_velocity_body_rps[:, 2]))
+            <= vehicle.max_yaw_rate_rps + 1e-9
+        )
         pitches = np.vstack([euler_from_quaternion(quat) for quat in trajectory.quat_xyzw])[:, 1]
         assert np.max(np.abs(pitches)) <= config.max_pitch_angle_rad + 1e-9
         speeds = trajectory.linear_velocity_body_mps[:, 0]
-        assert np.max(np.abs(np.diff(speeds))) <= vehicle.max_accel_mps2 * config.sample_time_s + 1e-9
+        assert (
+            np.max(np.abs(np.diff(speeds))) <= vehicle.max_accel_mps2 * config.sample_time_s + 1e-9
+        )
 
 
 def test_open_water_nominal_and_thruster_loss_are_certified() -> None:

@@ -69,7 +69,9 @@ def test_compute_path_metrics_reports_collision_reason() -> None:
         np.array([0.0, 1.0]),
     )
 
-    metrics = compute_path_metrics(trajectory, make_map((obstacle,), half_size_m=4.0), make_vehicle())
+    metrics = compute_path_metrics(
+        trajectory, make_map((obstacle,), half_size_m=4.0), make_vehicle()
+    )
 
     assert metrics.collision
     assert not metrics.out_of_bounds
@@ -110,7 +112,9 @@ def test_failed_eval_result_preserves_negative_clearance_and_reason() -> None:
         np.array([[-2.0, 0.0, 0.0], [2.0, 0.0, 0.0]]),
         np.array([0.0, 1.0]),
     )
-    metrics = compute_path_metrics(trajectory, make_map((obstacle,), half_size_m=4.0), make_vehicle())
+    metrics = compute_path_metrics(
+        trajectory, make_map((obstacle,), half_size_m=4.0), make_vehicle()
+    )
 
     result = metrics.to_eval_result(success=False, task_failure_reason="goal_not_reached")
 

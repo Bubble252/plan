@@ -158,7 +158,9 @@ class ThreeDAlosGuidance:
             distance_sq = float(np.dot(position - projection_point, position - projection_point))
             projection_s = float(cumulative_s_m[index] + along_m)
             tied = abs(distance_sq - best_distance_sq) <= 1e-12
-            if distance_sq < best_distance_sq - 1e-12 or (tied and projection_s > best_projection_s):
+            if distance_sq < best_distance_sq - 1e-12 or (
+                tied and projection_s > best_projection_s
+            ):
                 best_index = index
                 best_distance_sq = distance_sq
                 best_projection_s = projection_s
@@ -181,8 +183,7 @@ class ThreeDAlosGuidance:
         vertical_error_m = float(np.dot(offset, vertical_axis))
         effective_horizontal_lookahead_m = float(
             np.clip(
-                self.horizontal_lookahead_m
-                + self.lookahead_error_gain * abs(horizontal_error_m),
+                self.horizontal_lookahead_m + self.lookahead_error_gain * abs(horizontal_error_m),
                 self.min_lookahead_m,
                 self.max_lookahead_m,
             )

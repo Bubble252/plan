@@ -133,7 +133,9 @@ def hull_from_vehicle(vehicle: VehicleSpec, sphere_count: int | None = None) -> 
     if sphere_count is None:
         sphere_count = max(2, int(ceil(vehicle.length_m / vehicle.diameter_m)))
     if sphere_count < 2:
-        raise ValueError("hull sphere_count must be at least 2; use point clearance for a point model")
+        raise ValueError(
+            "hull sphere_count must be at least 2; use point clearance for a point model"
+        )
     radius = vehicle.diameter_m / 2.0
     segment_half_length = max(vehicle.length_m / 2.0 - radius, 0.0)
     offsets = np.zeros((sphere_count, 3), dtype=np.float64)
@@ -300,10 +302,15 @@ def _clearance_from_centers_many(
         obstacle_clearance = np.minimum(obstacle_clearance, np.min(distances, axis=1))
     obstacle_clearance -= radius_m
 
-    boundary_clearance = np.min(
-        _bounds_signed_distance_array(flat, obstacle_map.bounds_ned_m).reshape(sample_count, -1),
-        axis=1,
-    ) - radius_m
+    boundary_clearance = (
+        np.min(
+            _bounds_signed_distance_array(flat, obstacle_map.bounds_ned_m).reshape(
+                sample_count, -1
+            ),
+            axis=1,
+        )
+        - radius_m
+    )
     clearance = np.minimum(obstacle_clearance, boundary_clearance)
     return clearance, obstacle_clearance, boundary_clearance
 
@@ -344,7 +351,9 @@ def point_clearance(obstacle_map: ObstacleMap, position_ned_m: FloatArray) -> fl
     return point_clearance_details(obstacle_map, position_ned_m).clearance_m
 
 
-def hull_clearance_details(obstacle_map: ObstacleMap, state: State, hull: HullSpec) -> ClearanceDetails:
+def hull_clearance_details(
+    obstacle_map: ObstacleMap, state: State, hull: HullSpec
+) -> ClearanceDetails:
     if not isinstance(obstacle_map, ObstacleMap):
         raise TypeError("obstacle_map must be an ObstacleMap")
     centers = hull_sphere_centers(state, hull)
@@ -402,9 +411,7 @@ def _sample_trajectory_poses(
         quat_a = trajectory.quat_xyzw[index]
         quat_b = trajectory.quat_xyzw[index + 1]
         translation = float(np.linalg.norm(position_b - position_a))
-        rotation = float(
-            2.0 * np.arccos(np.clip(abs(float(np.dot(quat_a, quat_b))), -1.0, 1.0))
-        )
+        rotation = float(2.0 * np.arccos(np.clip(abs(float(np.dot(quat_a, quat_b))), -1.0, 1.0)))
         steps = max(
             1,
             int(ceil(translation / max_translation_step_m)),
@@ -412,8 +419,7 @@ def _sample_trajectory_poses(
         )
         fractions = np.arange(1, steps + 1, dtype=np.float64) / float(steps)
         times.append(
-            trajectory.t_s[index]
-            + fractions * (trajectory.t_s[index + 1] - trajectory.t_s[index])
+            trajectory.t_s[index] + fractions * (trajectory.t_s[index + 1] - trajectory.t_s[index])
         )
         positions.append(position_a + fractions[:, None] * (position_b - position_a))
         quats.append(

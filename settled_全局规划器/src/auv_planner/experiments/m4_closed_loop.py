@@ -49,14 +49,18 @@ def m4_cases() -> tuple[M4Case, ...]:
         M4Case(
             name="lateral_offset",
             description="初始横向偏置 0.5 m",
-            scenario=_straight_scenario("lateral_offset", np.array([-5.0, 0.5, 0.0]), np.zeros(3), 0.5),
+            scenario=_straight_scenario(
+                "lateral_offset", np.array([-5.0, 0.5, 0.0]), np.zeros(3), 0.5
+            ),
             trajectory=_straight_trajectory(),
             max_duration_s=12.0,
         ),
         M4Case(
             name="depth_offset",
             description="初始垂向偏置 0.5 m",
-            scenario=_straight_scenario("depth_offset", np.array([-5.0, 0.0, 0.5]), np.zeros(3), 0.5),
+            scenario=_straight_scenario(
+                "depth_offset", np.array([-5.0, 0.0, 0.5]), np.zeros(3), 0.5
+            ),
             trajectory=_straight_trajectory(),
             max_duration_s=12.0,
         ),

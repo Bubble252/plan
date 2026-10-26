@@ -131,19 +131,30 @@ class FaultSpec:
             raise TypeError("kind must be a FaultKind")
         if not np.isfinite(self.effectiveness) or not 0.0 <= self.effectiveness <= 1.0:
             raise ValueError("effectiveness must be in [0, 1]")
-        if not np.isfinite(self.residual_rate_fraction) or not 0.0 <= self.residual_rate_fraction <= 1.0:
+        if (
+            not np.isfinite(self.residual_rate_fraction)
+            or not 0.0 <= self.residual_rate_fraction <= 1.0
+        ):
             raise ValueError("residual_rate_fraction must be in [0, 1]")
         if self.kind is FaultKind.NOMINAL:
-            if self.stuck_sign != 0 or self.effectiveness != 1.0 or self.residual_rate_fraction != 1.0:
+            if (
+                self.stuck_sign != 0
+                or self.effectiveness != 1.0
+                or self.residual_rate_fraction != 1.0
+            ):
                 raise ValueError("nominal faults require full effectiveness and no stuck sign")
         elif self.kind is FaultKind.THRUSTER_EFFICIENCY_LOSS:
             if self.stuck_sign != 0 or self.effectiveness >= 1.0:
-                raise ValueError("thruster loss requires a stuck sign of zero and effectiveness below one")
+                raise ValueError(
+                    "thruster loss requires a stuck sign of zero and effectiveness below one"
+                )
         else:
             if self.stuck_sign not in {-1, 1}:
                 raise ValueError("stuck fin faults require stuck_sign of -1 or +1")
             if self.effectiveness != 1.0:
-                raise ValueError("stuck fin faults must not additionally scale propeller effectiveness")
+                raise ValueError(
+                    "stuck fin faults must not additionally scale propeller effectiveness"
+                )
 
     def capability(self, diagnosis_delay_s: float) -> CapabilitySet:
         if not np.isfinite(diagnosis_delay_s) or diagnosis_delay_s < 0.0:

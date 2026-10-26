@@ -201,9 +201,7 @@ def finalize_path(
         max_translation_step_m=validator.max_step_m,
         max_rotation_step_rad=max_rotation_step_rad,
     )
-    path_length = float(
-        np.sum(np.linalg.norm(np.diff(trajectory.position_ned_m, axis=0), axis=1))
-    )
+    path_length = float(np.sum(np.linalg.norm(np.diff(trajectory.position_ned_m, axis=0), axis=1)))
     return FinalizedPath(trajectory=trajectory, path_length_m=path_length, sweep=sweep)
 
 

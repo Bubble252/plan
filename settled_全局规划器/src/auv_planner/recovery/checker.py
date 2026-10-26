@@ -235,14 +235,20 @@ def _fault_check(
         for candidate in available
     )
     safe_checks = tuple(check for check in checks if check.safe)
-    selected = max(safe_checks, key=lambda check: (check.margin_m, check.candidate.name)) if safe_checks else None
+    selected = (
+        max(safe_checks, key=lambda check: (check.margin_m, check.candidate.name))
+        if safe_checks
+        else None
+    )
     best_attempt = _best_check(checks)
     combined_margin: float | None = None
     if best_attempt is not None:
         combined_margin = best_attempt.margin_m
     if coast_min_clearance is not None:
         coast_margin = coast_min_clearance - required_clearance_m
-        combined_margin = coast_margin if combined_margin is None else min(combined_margin, coast_margin)
+        combined_margin = (
+            coast_margin if combined_margin is None else min(combined_margin, coast_margin)
+        )
 
     safe = coast_safe and selected is not None
     if safe:
@@ -349,7 +355,9 @@ def _certificate_assumptions(config: RecoveryConfig, vehicle: VehicleSpec) -> tu
         "current is sampled from the supplied world model; M6 experiments use only the M5-validated current envelope",
     ]
     if config.clearance_model is not ClearanceModel.FULL_HULL:
-        assumptions.append("diagnostic clearance model is point-only and cannot issue a full-hull certificate")
+        assumptions.append(
+            "diagnostic clearance model is point-only and cannot issue a full-hull certificate"
+        )
     if config.constraint_mode is not ConstraintMode.VEHICLE:
         assumptions.append("diagnostic turn envelope relaxes the vehicle yaw-rate limit")
     return tuple(assumptions)
@@ -410,16 +418,16 @@ class RecoverabilityChecker:
             if not isinstance(profile, FaultProfile):
                 raise TypeError("profile must be a FaultProfile")
             if faults is not None or diagnosis_delays_s is not None:
-                raise ValueError("profile cannot be combined with explicit faults or diagnosis delays")
+                raise ValueError(
+                    "profile cannot be combined with explicit faults or diagnosis delays"
+                )
             active_profile = profile
         else:
             active_profile = FaultProfile(
                 name="custom",
                 faults=tuple(DEFAULT_FAULTS if faults is None else faults),
                 diagnosis_delays_s=tuple(
-                    DEFAULT_DIAGNOSIS_DELAYS_S
-                    if diagnosis_delays_s is None
-                    else diagnosis_delays_s
+                    DEFAULT_DIAGNOSIS_DELAYS_S if diagnosis_delays_s is None else diagnosis_delays_s
                 ),
             )
         if not active_profile.faults:
@@ -473,9 +481,7 @@ class RecoverabilityChecker:
 
         selected_names = tuple(
             dict.fromkeys(
-                check.selected.candidate.name
-                for check in checks
-                if check.selected is not None
+                check.selected.candidate.name for check in checks if check.selected is not None
             )
         )
         margins = tuple(check.margin_m for check in checks if check.margin_m is not None)

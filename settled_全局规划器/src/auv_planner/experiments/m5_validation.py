@@ -414,9 +414,7 @@ def compare_traces(pvs: OpenLoopTrace, mss: OpenLoopTrace) -> dict[str, float]:
     pvs_euler = pvs.euler_angles()[:count]
     mss_euler = mss.euler_angles()[:count]
     position_errors = np.linalg.norm(pvs_positions - mss_positions, axis=1)
-    pvs_path_length = float(
-        np.sum(np.linalg.norm(np.diff(pvs_positions, axis=0), axis=1))
-    )
+    pvs_path_length = float(np.sum(np.linalg.norm(np.diff(pvs_positions, axis=0), axis=1)))
     return {
         "trajectory_rms_position_error_m": float(np.sqrt(np.mean(position_errors**2))),
         "trajectory_max_position_error_m": float(np.max(position_errors)),
@@ -435,7 +433,9 @@ def compare_traces(pvs: OpenLoopTrace, mss: OpenLoopTrace) -> dict[str, float]:
 def run_step_convergence() -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     sample_times = (0.02, 0.01, 0.005, 0.0025)
-    selected_cases = tuple(case for case in open_loop_cases() if case.name in {"straight", "rudder_step"})
+    selected_cases = tuple(
+        case for case in open_loop_cases() if case.name in {"straight", "rudder_step"}
+    )
     for case in selected_cases:
         for model in ("pvs_euler", "mss_euler", "mss_rk4"):
             traces: dict[float, OpenLoopTrace] = {}
@@ -493,7 +493,13 @@ def run_step_convergence() -> list[dict[str, object]]:
 
 
 def closed_loop_cases() -> tuple[ClosedLoopCase, ...]:
-    selected = {"straight", "lateral_offset", "depth_offset", "single_turn", "straight_cross_current"}
+    selected = {
+        "straight",
+        "lateral_offset",
+        "depth_offset",
+        "single_turn",
+        "straight_cross_current",
+    }
     cases: list[ClosedLoopCase] = []
     for case in m4_cases():
         if case.name not in selected:
@@ -529,7 +535,9 @@ def closed_loop_cases() -> tuple[ClosedLoopCase, ...]:
     return tuple(cases)
 
 
-def run_closed_loop_comparison(*, seed: int = 0) -> tuple[list[dict[str, object]], dict[str, ClosedLoopResult]]:
+def run_closed_loop_comparison(
+    *, seed: int = 0
+) -> tuple[list[dict[str, object]], dict[str, ClosedLoopResult]]:
     rows: list[dict[str, object]] = []
     logs: dict[str, ClosedLoopResult] = {}
     for case in closed_loop_cases():
@@ -564,9 +572,7 @@ def run_closed_loop_comparison(*, seed: int = 0) -> tuple[list[dict[str, object]
                 "mss_vertical_rmse_m": mss_metrics.vertical_rmse_m,
                 "pvs_goal_distance_m": pvs_metrics.goal_distance_m,
                 "mss_goal_distance_m": mss_metrics.goal_distance_m,
-                "common_sample_trajectory_rms_m": float(
-                    np.sqrt(np.mean(position_difference**2))
-                ),
+                "common_sample_trajectory_rms_m": float(np.sqrt(np.mean(position_difference**2))),
                 "common_sample_trajectory_final_m": float(position_difference[-1]),
                 "pvs_max_abs_rudder_rad": pvs_metrics.max_abs_rudder_angle_rad,
                 "mss_max_abs_rudder_rad": mss_metrics.max_abs_rudder_angle_rad,
@@ -625,9 +631,7 @@ def build_threshold_audit(
         _row_float(derivative_by_case[name], "relative_l2") for name in calm_cases
     )
     depth_shear_derivative = _row_float(derivative_by_case["depth_shear"], "relative_l2")
-    cross_current_derivative = _row_float(
-        derivative_by_case["cross_current"], "relative_l2"
-    )
+    cross_current_derivative = _row_float(derivative_by_case["cross_current"], "relative_l2")
     open_loop_error = max(
         _row_float(row, "normalized_final_position_error") for row in open_loop_rows
     )
@@ -638,8 +642,7 @@ def build_threshold_audit(
         _row_float(row, "common_sample_trajectory_rms_m") for row in closed_loop_rows
     )
     constraint_violations = sum(
-        _row_float(row, "pvs_constraint_violations")
-        + _row_float(row, "mss_constraint_violations")
+        _row_float(row, "pvs_constraint_violations") + _row_float(row, "mss_constraint_violations")
         for row in closed_loop_rows
     )
     euler_error = max(
@@ -697,7 +700,9 @@ def _run_closed_loop_case(case: ClosedLoopCase, *, seed: int, model: str) -> Clo
     )
     controller = Remus100TrackingController(case.scenario.vehicle, current_field=current)
     if model == "pvs":
-        backend: SimulatorBackend = PvsRemus100Backend(sample_time_s=0.02, allow_sheared_current=True)
+        backend: SimulatorBackend = PvsRemus100Backend(
+            sample_time_s=0.02, allow_sheared_current=True
+        )
         close_backend = False
     elif model == "mss":
         backend = MssRemus100Backend(
